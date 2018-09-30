@@ -41,11 +41,20 @@
 	
 	\section{Motivation}
 	
+There are various methods of performing shape optimization, which is inherently an infinite-dimensional problem. One approach is to optimize directly for the continuous quantity of interest, a function, which is often done iteratively. Starting with an initial guess, partial differential equations are evaluated over the domain of interest, and then the shape is perturbed until some optimality condition is reached. 
+
+Another approach is to discretize the space, which has other difficulties.  (cite Pros and Cons of Airfoil Design Optimization)
+
+However, this method can be used to great effect when the thing being designed is uncontinuous, such as things meant to be additively manufactured. 
+	
 	\section{Concept}
 	
 	Starting with $n_{ctrl}$ control points evolving over $n_t$ time steps, we can devise a method to appropriately mesh the 2D slice of the rocket. 
 	The hope is that the problem can be posed as a difference-of-convex optimization problem, and especially a mixed integer convex problem through piecewise linearization and the use of binary variables. 
 	The pipe dream is to be able to perform this optimization in 3D with good first-order methods to accommodate for erosive burning. 
+	
+	\subsection{Alternative ways to think about the burn rate}
+	We can also think about the burn rate being faster in regions that are more exposed to the flame (thinking about the dot product of the two vectors originating from the point), and then assigning a binary value on whether or not the resulting vector is within or outside of the burning surface. 
 	\subsection{Approximations}
 	\begin{itemize}
 		\item \textbf{Pressure dependence on the burn rate is defined by the Saint-Robert's law:} $r = a P_c^n$
