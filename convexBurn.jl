@@ -14,19 +14,14 @@ function srm_model(global_solver, nctrl, circProfile, r)
 	# Real-space variables
 	@variables m begin
 	    x[1:nctrl, 1:nt]
-	    absx[1:nctrl,1:nt]
-	    logabsx[1:nctrl,1:nt]
 	    dx[1:nctrl, 1:nt]
 	    dx2[1:nctrl, 1:nt]
 	    y[1:nctrl, 1:nt]
-	    absy[1:nctrl,1:nt]
-	    logabsy[1:nctrl,1:nt]
-	    dy[1:nctrl, 1:nt]   
+	    dy[1:nctrl, 1:nt]
 	    dy2[1:nctrl, 1:nt]
 	    nx[1:nctrl, 1:nt]
 	    ny[1:nctrl, 1:nt]
 	    l[1:nctrl, 1:nt]
-	    logl[1:nctrl, 1:nt]
 	    l2[1:nctrl, 1:nt]
 	    circ[1:nt]
 	    penalty[1:nt]
@@ -52,16 +47,12 @@ function srm_model(global_solver, nctrl, circProfile, r)
 	    y[nctrl,2:nt] .== y[nctrl,1:nt-1] + 
 	            0.5*ny[nctrl,1:nt-1]*regrate + 
 	            0.5*ny[1,1:nt-1]*regrate
-	    
+
 	    dx[2:nctrl,1:nt] .== x[2:nctrl,1:nt] - x[1:nctrl-1,1:nt]
 	    dx[1,1:nt] .== x[1,1:nt] - x[nctrl,1:nt]
 	    dy[2:nctrl,1:nt] .== y[2:nctrl,1:nt] - y[1:nctrl-1,1:nt]
 	    dy[1,1:nt] .== y[1,1:nt] - y[nctrl,1:nt]
 	    l2[1:nctrl,1:nt] .== dx2[1:nctrl,1:nt] + dy2[1:nctrl,1:nt]
-	    absx[1:nctrl,1:nt] .>= x[1:nctrl,1:nt]
-	    absx[1:nctrl,1:nt] .>= -1*x[1:nctrl,1:nt]
-	    absy[1:nctrl,1:nt] .>= y[1:nctrl,1:nt]  
-	    absy[1:nctrl,1:nt] .>= -1*y[1:nctrl,1:nt]
 	    nx[1:nctrl,1:nt] .== -1*dy[1:nctrl,1:nt]
 	    ny[1:nctrl,1:nt] .== dx[1:nctrl,1:nt]
 	end
@@ -73,12 +64,11 @@ function srm_model(global_solver, nctrl, circProfile, r)
 	end
 
 	# Piecewise linearization
-	rvec = logspace(0.00001,2*r,10)
+	rvec = logspace(-r,r,100)
 	for i in 1:nctrl
 	    for j in 1:nt
-	    @constraint(m, logabsx[i,j] == piecewiselinear(m, absx[i,j], rvec, log.(rvec)))
-	    @constraint(m, logabsy[i,j] == piecewiselinear(m, absy[i,j], rvec, log.(rvec)))
-	    @constraint(m, logl[i,j] == piecewiselinear(m, l[i,j], rvec, log.(rvec)))
+	        @constraint(m, dx2[i,j] == piecewiselinear(m, dx[i,j], rvec, rvec.^2))
+	        @constraint(m, dy2[i,j] == piecewiselinear(m, dy[i,j], rvec, rvec.^2))
 	    end
 	end
 
@@ -86,13 +76,7 @@ function srm_model(global_solver, nctrl, circProfile, r)
 	# Note: constraints commented for feasibility
 	for i in 1:nctrl 
 	    for j in 1:nt
-	        # @NLconstraint(m, log(exp(2*logabsx[i,j]) + exp(2*logabsy[i,j])) <= 2*log(r))
-	        @NLconstraint(m, exp(2*logabsx[i,j]) <= dx2[i,j])
-	#         @NLconstraint(m, exp(2*logabsx[i,j]) >= dx2[i,j])
-	        @NLconstraint(m, exp(2*logabsy[i,j]) <= dy2[i,j])
-	#         @NLconstraint(m, exp(2*logabsy[i,j]) >= dy2[i,j])
-	#         @NLconstraint(m, exp(2*logl[i,j]) >= l2[i,j])
-	        @NLconstraint(m, exp(2*logl[i,j]) <= l2[i,j])
+	    	    @NLconstraint(m, x[i,j]^2 + y[i,j]^2 <= r^2)
 	    end
 	end
 
