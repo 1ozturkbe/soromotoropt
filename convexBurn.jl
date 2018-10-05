@@ -29,9 +29,7 @@ function srm_model(global_solver, nctrl, circProfile, r)
 
 	# Linear constraints
 	@constraints m begin
-	    l[:,:] .>= 0
-	    circ[:,:] .>= 0
-	    # Motion of flame front 
+	    # Motion of flame front
 	    x[1:nctrl-1,2:nt] .== x[1:nctrl-1,1:nt-1] + 
 	            0.5*nx[1:nctrl-1,1:nt-1]*regrate + 
 	            0.5*nx[2:nctrl,1:nt-1]*regrate 
@@ -64,19 +62,24 @@ function srm_model(global_solver, nctrl, circProfile, r)
 	end
 
 	# Piecewise linearization
-	rvec = logspace(-r,r,100)
-	for i in 1:nctrl
-	    for j in 1:nt
-	        @constraint(m, dx2[i,j] == piecewiselinear(m, dx[i,j], rvec, rvec.^2))
-	        @constraint(m, dy2[i,j] == piecewiselinear(m, dy[i,j], rvec, rvec.^2))
-	    end
-	end
+	rvec = linspace(-r,r,7)
+	lvec = linspace(0,2*r,7)
+	#for i in 1:nctrl
+	#    for j in 1:nt
+	        #@constraint(m, dx2[i,j] == piecewiselinear(m, dx[i,j], rvec, rvec.^2))
+	        #@constraint(m, dy2[i,j] == piecewiselinear(m, dy[i,j], rvec, rvec.^2))
+	        #@constraint(m, l2[i,j] == piecewiselinear(m, l[i,j], lvec, lvec.^2))
+	#    end
+	#end
 
 	# Purely convex (GP) constraints
 	# Note: constraints commented for feasibility
 	for i in 1:nctrl 
 	    for j in 1:nt
-	    	    @NLconstraint(m, x[i,j]^2 + y[i,j]^2 <= r^2)
+	    	    @constraint(m, x[i,j]^2 + y[i,j]^2 <= r^2)
+	    	    @constraint(m, dx[i,j]^2  <= dx2[i,j])
+	    	    @constraint(m, dy[i,j]^2  <= dy2[i,j])
+	    	    @constraint(m, l[i,j]^2 <= l2[i,j])
 	    end
 	end
 
@@ -92,7 +95,7 @@ global_solver = DaChoppaSolver(log_level=1, mip_solver=mip_solver)
 
 # Problem definition
 nctrl = 8 # number of control points
-nt = 6
+nt = 2
 r = 1 # radius of the motor
 circProfile = pi*r*ones(nt) + 1/2*pi*linspace(0,1,nt)*r
 regrate = 0.25
