@@ -1,9 +1,9 @@
 using JuMP
 using PiecewiseLinearOpt
 using Gurobi
-using CPLEX
+# using CPLEX
 using DaChoppa
-using Plots
+# using Plots
 
 function srm_model(global_solver, nctrl, circProfile, r)
 	nt = size(circProfile,1)
@@ -30,20 +30,20 @@ function srm_model(global_solver, nctrl, circProfile, r)
 	# Linear constraints
 	@constraints m begin
 	    # Motion of flame front
-	    x[1:nctrl-1,2:nt] .== x[1:nctrl-1,1:nt-1] + 
-	            0.5*nx[1:nctrl-1,1:nt-1]*regrate + 
-	            0.5*nx[2:nctrl,1:nt-1]*regrate 
-	    
-	    x[nctrl,2:nt] .== x[nctrl,1:nt-1] + 
-	            0.5*nx[nctrl,1:nt-1]*regrate + 
+	    x[1:nctrl-1,2:nt] .== x[1:nctrl-1,1:nt-1] +
+	            0.5*nx[1:nctrl-1,1:nt-1]*regrate +
+	            0.5*nx[2:nctrl,1:nt-1]*regrate
+
+	    x[nctrl,2:nt] .== x[nctrl,1:nt-1] +
+	            0.5*nx[nctrl,1:nt-1]*regrate +
 	            0.5*nx[1,1:nt-1]*regrate
-	    
-	    y[1:nctrl-1,2:nt] .== y[1:nctrl-1,1:nt-1] + 
-	            0.5*ny[1:nctrl-1,1:nt-1]*regrate + 
-	            0.5*ny[2:nctrl,1:nt-1]*regrate 
-	    
-	    y[nctrl,2:nt] .== y[nctrl,1:nt-1] + 
-	            0.5*ny[nctrl,1:nt-1]*regrate + 
+
+	    y[1:nctrl-1,2:nt] .== y[1:nctrl-1,1:nt-1] +
+	            0.5*ny[1:nctrl-1,1:nt-1]*regrate +
+	            0.5*ny[2:nctrl,1:nt-1]*regrate
+
+	    y[nctrl,2:nt] .== y[nctrl,1:nt-1] +
+	            0.5*ny[nctrl,1:nt-1]*regrate +
 	            0.5*ny[1,1:nt-1]*regrate
 
 	    dx[2:nctrl,1:nt] .== x[2:nctrl,1:nt] - x[1:nctrl-1,1:nt]
@@ -64,22 +64,22 @@ function srm_model(global_solver, nctrl, circProfile, r)
 	# Piecewise linearization
 	rvec = linspace(-r,r,7)
 	lvec = linspace(0,2*r,7)
-	#for i in 1:nctrl
-	#    for j in 1:nt
-	        #@constraint(m, dx2[i,j] == piecewiselinear(m, dx[i,j], rvec, rvec.^2))
-	        #@constraint(m, dy2[i,j] == piecewiselinear(m, dy[i,j], rvec, rvec.^2))
-	        #@constraint(m, l2[i,j] == piecewiselinear(m, l[i,j], lvec, lvec.^2))
-	#    end
-	#end
+	for i in 1:nctrl
+	   for j in 1:nt
+	        @constraint(m, dx2[i,j] == piecewiselinear(m, dx[i,j], rvec, rvec.^2))
+	        @constraint(m, dy2[i,j] == piecewiselinear(m, dy[i,j], rvec, rvec.^2))
+	        @constraint(m, l2[i,j] == piecewiselinear(m, l[i,j], lvec, lvec.^2))
+	   end
+	end
 
 	# Purely convex (GP) constraints
 	# Note: constraints commented for feasibility
-	for i in 1:nctrl 
+	for i in 1:nctrl
 	    for j in 1:nt
-	    	    @constraint(m, x[i,j]^2 + y[i,j]^2 <= r^2)
-	    	    @constraint(m, dx[i,j]^2  <= dx2[i,j])
-	    	    @constraint(m, dy[i,j]^2  <= dy2[i,j])
-	    	    @constraint(m, l[i,j]^2 <= l2[i,j])
+    	    @NLconstraint(m, sqrt(x[i,j]^2 + y[i,j]^2) <= r)
+    	    @NLconstraint(m, dx[i,j]^2  <= dx2[i,j])
+    	    @NLconstraint(m, dy[i,j]^2  <= dy2[i,j])
+    	    @NLconstraint(m, l[i,j]^2 <= l2[i,j])
 	    end
 	end
 
@@ -88,13 +88,13 @@ function srm_model(global_solver, nctrl, circProfile, r)
 	return sol
 end
 
-mip_solver = CplexSolver(CPX_PARAM_SCRIND=1, CPX_PARAM_EPINT=1e-9, 
-    CPX_PARAM_EPRHS=1e-9, CPX_PARAM_EPGAP=1e-7)
-# mip_solver = Gurobi.GurobiSolver(OutputFlag=1, IntFeasTol=1e-9, FeasibilityTol=1e-9, MIPGap=1e-7)
+# mip_solver = CplexSolver(CPX_PARAM_SCRIND=1, CPX_PARAM_EPINT=1e-9,
+    # CPX_PARAM_EPRHS=1e-9, CPX_PARAM_EPGAP=1e-7)
+mip_solver = Gurobi.GurobiSolver(OutputFlag=1, IntFeasTol=1e-9, FeasibilityTol=1e-5, MIPGap=1e-7)
 global_solver = DaChoppaSolver(log_level=1, mip_solver=mip_solver)
 
 # Problem definition
-nctrl = 8 # number of control points
+nctrl = 4 # number of control points
 nt = 2
 r = 1 # radius of the motor
 circProfile = pi*r*ones(nt) + 1/2*pi*linspace(0,1,nt)*r
