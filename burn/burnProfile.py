@@ -55,6 +55,8 @@ class Nozzle(Model):
             M_e == V_e/a_e,
             # Exit speed of sound
             a_e**2 == g*R*T_e,
+            # Exit pressure
+            T_e/T_t == (p_e/p_t)**(1.4/.4),
             ]
         with SignomialsEnabled():
             constraints += [
@@ -94,8 +96,10 @@ def test_Nozzle():
     m = Nozzle()
     m.substitutions.update({'Aratio':      5,
                             'T_t':         1000*units('K'),
-                            'p_t':         500*units('kPa')})
-    m.cost = m.T
+                            'p_t':         500*units('kPa'),
+                            'mdot':        1*units('g/s'),
+                            'rhostar':     1.5*units('kg/m^3')})
+    m.cost = 1/m.T
     sol = m.localsolve(verbosity = 4)
 
 if __name__ == "__main__":
