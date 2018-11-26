@@ -9,11 +9,14 @@ class Nozzle(Model):
     -------------
     Aratio                            [-]        nozzle area ratio
     A_e                               [m^2]      nozzle exit area
+    cstar                             [m/s]      characteristic velocity
+    cT                                [-]        thrust coefficient
     rhostar                           [kg/m^3]   density at throat
     ustar                             [m/s]      velocity at throat
     Astar                             [m^2]      area of throat
     pstar                             [Pa]       pressure at throat
     Tstar                             [K]        temperature at throat
+    astar                             [m/s]      speed of sound at throat
     p_t                               [Pa]       stagnation pressure
     T_t                               [K]        stagnation temperature
     mdot                              [kg/s]     mass flow rate through nozzle
@@ -40,8 +43,12 @@ class Nozzle(Model):
             # Mass flow rate
             mdot == rhostar*ustar*Astar,
             mdot == rho_e*V_e*A_e,
+            # Characteristic velocity
+            cstar == p_t*Astar/mdot,
+            cstar**2 == 1/1.4*(2.4/2)**(2.4/.4)*R*T_t,
+            # Thrust coefficient
+            T == mdot*cstar*cT,
             # Universal gas law
-            pstar == rhostar*R*Tstar,
             p_e == rho_e*R*T_e,
             # Area ratio
             A_e/Astar == Aratio,
@@ -53,10 +60,11 @@ class Nozzle(Model):
             2*c_p*T_e + V_e**2 <= 2*c_p*T_t,
             # Exit Mach number
             M_e == V_e/a_e,
-            # Exit speed of sound
+            M_e >= 1,
+            # Speed of sound
             a_e**2 == g*R*T_e,
             # Exit pressure
-            T_e/T_t == (p_e/p_t)**(1.4/.4),
+            (T_e/T_t)**(1.4/.4) == p_e/p_t,
             ]
         with SignomialsEnabled():
             constraints += [
@@ -93,14 +101,13 @@ class Rocket(Model):
 
 def test_Nozzle():
     print "Testing Nozzle..."
+
+if __name__ == "__main__":
     m = Nozzle()
-    m.substitutions.update({'Aratio':      5,
-                            'T_t':         1000*units('K'),
-                            'p_t':         500*units('kPa'),
-                            'mdot':        1*units('g/s'),
+    m.substitutions.update({'Aratio':      10,
+                            'T_t':         1800*units('K'),
+                            'p_t':         5000*units('kPa'),
+                            'mdot':        1*units('kg/s'),
                             'rhostar':     1.5*units('kg/m^3')})
     m.cost = 1/m.T
     sol = m.localsolve(verbosity = 4)
-
-if __name__ == "__main__":
-    test_Nozzle()
