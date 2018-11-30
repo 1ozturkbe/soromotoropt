@@ -69,6 +69,8 @@ class Section(Model):
             A_p_out + r*l_b*dt <= A_p_in,
             # Stagnation quantities
             P_t_in >= P_in + 0.5*rho_in*u_in**2,
+            # Making sure burn surface length is feasible
+            l_b >= 2*np.pi**0.5*(A_avg)**0.5,
         ]
         with SignomialsEnabled():
             constraints += [
@@ -81,20 +83,6 @@ class Section(Model):
             ]
         return constraints
 
-def test_section():
-    m = Section()
-    m.substitutions.update({
-        m.P_t_in          :1000*units('kPa'),
-        m.l               :1*units('cm'),
-        m.T_t_in          :700*units('K'),
-        m.mdot_in         :1*units('kg/s'),
-        m.A_in            :10*units('cm^2'),
-        m.A_out           :10*units('cm^2'),
-        m.u_in            :10*units('m/s'),
-    })
-    m.cost = 1/(m.u_out*m.A_p_out)
-
-
 if __name__ == "__main__":
     m = Section()
     m.substitutions.update({
@@ -102,9 +90,14 @@ if __name__ == "__main__":
         m.l               :1*units('cm'),
         m.T_t_in          :700*units('K'),
         m.mdot_in         :1*units('kg/s'),
+        m.l_b             :2*np.pi*units('cm'),
+        m.A_p_in[0]          :10*units('cm^2'),
         m.A_in            :np.pi*units('cm^2'),
         m.A_out           :np.pi*units('cm^2'),
         m.u_in            :10*units('m/s'),
+        m.T_t_out         :700*units('K'),
+        m.dt              :0.01*units('s'),
     })
     m.cost = 1/(m.u_out*m.P_t_out*m.A_p_out)
-    sol = m.localsolve()
+    m_relax = relaxed_constants(m)
+    sol = m_relax.localsolve()
