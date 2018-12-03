@@ -29,9 +29,9 @@ class NozzlePerformance(Model):
     rhostar                           [kg/m^3]   density at throat
     ustar                             [m/s]      velocity at throat
     astar                             [m/s]      speed of sound at throat
-    pstar                             [Pa]       pressure at throat
+    Pstar                             [Pa]       pressure at throat
     Tstar                             [K]        temperature at throat
-    p_t                               [Pa]       stagnation pressure
+    P_t                               [Pa]       stagnation pressure
     T_t                               [K]        stagnation temperature
     mdot                              [kg/s]     mass flow rate
     T                                 [N]        thrust
@@ -39,11 +39,11 @@ class NozzlePerformance(Model):
     rho_e                             [kg/m^3]   density at exit
     u_e                               [m/s]      horizontal jet velocity
     a_e                               [m/s]      speed of sound at exit
-    p_e                               [Pa]       exit static pressure
+    P_e                               [Pa]       exit static pressure
     T_e                               [K]        exit static temperature
     M_e                               [-]        jet Mach number
     chokeConstant          1.281      [-]        choked flow constant
-    p_atm                  101000     [Pa]       atmospheric pressure
+    P_atm                  101000     [Pa]       atmospheric pressure
     c_p                    1000       [J/kg/K]   specific heat of air (constant pressure)
     c_v                    718        [J/kg/K]   specific heat of air (constant volume)
     R                      287        [J/kg/K]   gas constant of air
@@ -58,16 +58,17 @@ class NozzlePerformance(Model):
             mdot == rhostar*ustar*nozzle.Astar,
             mdot == rho_e*u_e*nozzle.A_e,
             # Characteristic velocity
-            cstar == p_t*nozzle.Astar/mdot,
+            cstar == P_t*nozzle.Astar/mdot,
             cstar**2 == 1/1.4*(2.4/2)**(2.4/.4)*R*T_t,
             # Thrust coefficient
             T == mdot*cstar*cT,
             # Universal gas law
-            p_e == rho_e*R*T_e,
+            P_e == rho_e*R*T_e,
             # Stagnation pressure and static pressure at throat
-            (p_t/pstar) == (2.4/2)**(1.4/0.4),
+            (P_t/Pstar) == (2.4/2)**(1.4/0.4),
             # Choked throat relations
-            mdot*c_p**0.5*T_t**0.5/nozzle.Astar/p_t == chokeConstant,
+            mdot*c_p**0.5*T_t**0.5/nozzle.Astar/P_t == chokeConstant,
+            ustar/astar == 1,
             # Stagnation temperature to velocity at exit
             2*c_p*T_e + u_e**2 <= 2*c_p*T_t,
             # Exit Mach number
@@ -75,13 +76,16 @@ class NozzlePerformance(Model):
             M_e >= 1,
             # Speed of sound
             a_e**2 == g*R*T_e,
+            astar**2 == g*R*Tstar,
             # Exit pressure
-            (T_e/T_t)**(1.4/.4) == p_e/p_t,
+            (T_e/T_t)**(1.4/.4) == P_e/P_t,
             ]
         with SignomialsEnabled():
             constraints += [
                 # Thrust
-                T <= mdot*u_e + (p_e - p_atm)*nozzle.A_e,
+                T <= mdot*u_e + (P_e - P_atm)*nozzle.A_e,
+                # Speed of sound at throat
+                SignomialEquality(Tstar + ustar**2/(2*c_p),T_t),
             ]
         return constraints
 
@@ -109,9 +113,9 @@ def test_Nozzle():
     m = Rocket(1)
     m.substitutions.update({'Aratio':      10,
                             'T_t':         1800*units('K'),
-                            'p_t':         5000*units('kPa'),
+                            'P_t':         5000*units('kPa'),
                             'mdot':        1*units('kg/s'),
-                            'rhostar':     1.5*units('kg/m^3')})
+                            })
     m.cost = 1/sum(m.nozzlePerformance.T)
     m_relax = relaxed_constants(m, None, [m.nozzlePerformance.chokeConstant])
     sol = m_relax.localsolve(verbosity=2)
