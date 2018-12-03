@@ -64,6 +64,7 @@ class NozzlePerformance(Model):
             T == mdot*cstar*cT,
             # Universal gas law
             P_e == rho_e*R*T_e,
+            Pstar == rhostar*R*Tstar,
             # Stagnation pressure and static pressure at throat
             (P_t/Pstar) == (2.4/2)**(1.4/0.4),
             # Choked throat relations
@@ -78,6 +79,7 @@ class NozzlePerformance(Model):
             a_e**2 == g*R*T_e,
             astar**2 == g*R*Tstar,
             # Exit pressure
+            P_e == rho_e*R*T_e,
             (T_e/T_t)**(1.4/.4) == P_e/P_t,
             ]
         with SignomialsEnabled():
@@ -120,6 +122,8 @@ def test_Nozzle():
     m_relax = relaxed_constants(m, None, [m.nozzlePerformance.chokeConstant])
     sol = m_relax.localsolve(verbosity=2)
     post_process(sol)
+    print sol.table()
+
 
 if __name__ == "__main__":
-    pass
+    test_Nozzle()
