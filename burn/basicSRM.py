@@ -12,7 +12,7 @@ class Section(Model):
 
     Variables
     -------------
-    radius                            [m]          max radius of section
+    radius                            [m]          radius of section
     Aratio                            [-]          area ratio
     A_in                              [m^2]        area in
     A_out                             [m^2]        area out
@@ -21,11 +21,12 @@ class Section(Model):
     A_p_in                            [m^2]        initial propellant area
     A_p_out                           [m^2]        final propellant area
     l_b                               [m]          avg burn length
+    l_b_max                           [-]          maximum burn length factor
     l                                 [m]          section length
     mdot_in                           [kg/s]       mass flow rate in
     mdot_out                          [kg/s]       mass flow rate out
-    rho_in                            [kg/m^3]   density in
-    rho_out                           [kg/m^3]   density out
+    rho_in                            [kg/m^3]     density in
+    rho_out                           [kg/m^3]     density out
     P_t_in                            [Pa]         stagnation pressure in
     P_t_out                           [Pa]         stagnation pressure out
     P_in                              [Pa]         static pressure at inlet
@@ -42,8 +43,8 @@ class Section(Model):
     u_avg                             [m/s]        average velocity
     r                                 [mm/s]       burn rate
     q                                 [kg/s]       rate of generation of products
+    dt                                [s]          time step
     R                    287          [J/kg/K]     gas constant of air
-    dt                   0.01         [s]          time step
     T_amb                273          [K]          ambient temperature
     r_c                  5.606        [mm/s]       burn rate coefficient
     r_k                  0.05         [1/(m/s)]    erosive burn rate coefficient
@@ -61,7 +62,7 @@ class Section(Model):
             # Volume of chamber
             V_chamb == A_avg*l,
             # Constraining areas
-            A_avg + A_p_in <= np.pi*radius**2,
+            Tight([A_avg + A_p_in <= np.pi*radius**2]),
             # Area ratio
             A_in / A_out == Aratio,
             # Mass flow rate
@@ -81,7 +82,8 @@ class Section(Model):
             # Pressure increase
             P_out + dP <= P_in,
             # Making sure burn surface length is feasible
-            l_b >= 2*np.pi**0.5*(A_p_in*A_p_out)**0.25,
+            l_b >= 2*np.pi**0.5*(A_avg)**0.5,
+            l_b <= l_b_max*2*np.pi**0.5*(A_avg)**0.5,
 
         ]
         with SignomialsEnabled():
@@ -109,18 +111,18 @@ if __name__ == "__main__":
     radius = 10*units('cm')
     m.substitutions.update({
         m.radius          :radius,
+        m.l_b_max         :3,
         m.P_t_in          :1000*units('kPa'),
         m.l               :10*units('cm'),
         m.T_t_in          :700*units('K'),
-        m.T_in            :670*units('K'),
-        m.mdot_in         :0.01*units('kg/s'),
-        m.A_p_in          :0.9*np.pi*radius**2,
-        m.A_p_out         :10e-20*units('m^2'),
-        m.A_in            :np.pi*units('cm^2'),
-        m.A_out           :np.pi*units('cm^2'),
-        m.T_t_out         :800*units('K'),
+        m.T_in            :690*units('K'),
+        m.mdot_in         :0.5*units('kg/s'),
+        m.A_p_in          :0.1*np.pi*radius**2,
+        m.A_p_out         :0.08*units('m^2'),
+        m.A_in            :0.9*np.pi*radius**2,
+        m.A_out           :0.9*np.pi*radius**2,
         m.dt              :0.01*units('s'),
     })
-    m.cost = 1/(m.mdot_out*m.T_t_out*m.P_t_out)
+    m.cost = 1/(m.mdot_out*m.dt*m.T_t_out*m.P_t_out)
     m_relax = relaxed_constants(m)
     sol = m_relax.localsolve()
