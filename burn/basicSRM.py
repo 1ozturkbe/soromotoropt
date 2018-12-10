@@ -13,7 +13,7 @@ class Section(Model):
     Variables
     -------------
     radius                            [m]          radius of section
-    Aratio                            [-]          area ratio
+    A_ratio                            [-]          area ratio
     A_in                              [m^2]        area in
     A_out                             [m^2]        area out
     A_avg                             [m^2]        average area
@@ -40,7 +40,6 @@ class Section(Model):
     T_out                             [K]          static temperature out
     u_in                              [m/s]        velocity in
     u_out                             [m/s]        velocity out
-    u_avg                             [m/s]        average velocity
     r                                 [mm/s]       burn rate
     q                                 [kg/s]       rate of generation of products
     dt                                [s]          time step
@@ -57,14 +56,11 @@ class Section(Model):
         exec parse_variables(Section.__doc__)
         constraints = [
             # Taking averages,
-            u_in*u_out == u_avg**2,
             A_in*A_out == A_avg**2,
             # Volume of chamber
             V_chamb == A_avg*l,
-            # Constraining areas
-            Tight([A_avg + A_p_in <= np.pi*radius**2]),
             # Area ratio
-            A_in / A_out == Aratio,
+            A_in / A_out == A_ratio,
             # Mass flow rate
             rho_in * u_in * A_in == mdot_in,
             rho_out * u_out * A_out == mdot_out,
@@ -90,18 +86,19 @@ class Section(Model):
             constraints += [
                 # Flow acceleration (conservation of momentum)
                 # Note: assumes constant rate of burn through the chamber
-                dP >= q*u_out/V_chamb*(2./3.*l) + rho_in*u_in*(u_out - u_in),
-                u_out >= u_in,
+                dP + rho_in*u_in**2 >= q*u_out/V_chamb*(2./3.*l) + rho_in*u_in*u_out,
                 # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
-                SignomialEquality(r, r_c * (P_chamb/1e6*units('1/Pa')) ** 0.35 * (1 + r_k*u_avg)),
+                SignomialEquality(r, r_c * (P_chamb/1e6*units('1/Pa')) ** 0.35 * (1 + 0.5*r_k*(u_in+u_out))),
                 # Mass flows
-                SignomialEquality(mdot_in + q, mdot_out),
+                Tight([mdot_in + q >= mdot_out]),
                 mdot_out >= mdot_in,
                 # Temperatures
                 Tight([T_t_out*mdot_out <= mdot_in*T_t_in + q*T_amb + q*k_comb_p/c_p]),
                 # Stagnation quantities
                 Tight([P_t_out <= P_out + 0.5*rho_out*u_out**2]),
                 Tight([T_t_out <= T_out + u_out**2/(2*c_p)]),
+                # Constraining areas
+                SignomialEquality(A_avg + A_p_in, np.pi*radius**2),
 
             ]
         return constraints
@@ -125,4 +122,4 @@ if __name__ == "__main__":
     })
     m.cost = 1/(m.mdot_out*m.dt*m.T_t_out*m.P_t_out)
     m_relax = relaxed_constants(m)
-    sol = m_relax.localsolve()
+    sol = m_relax.localsolve(reltol = 1e-3)
