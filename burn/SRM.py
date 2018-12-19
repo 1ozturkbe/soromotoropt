@@ -39,22 +39,16 @@ class SRM(Model):
     A_p_in                            [m^2]        initial propellant area
     A_p_out                           [m^2]        final propellant area
     l_b                               [m]          avg burn length
-    mdot_in                           [kg/s]       mass flow rate in
     mdot_out                          [kg/s]       mass flow rate out
-    rho_in                            [kg/m^3]     density in
     rho_out                           [kg/m^3]     density out
-    P_t_in                            [Pa]         stagnation pressure in
     P_t_out                           [Pa]         stagnation pressure out
-    P_in                              [Pa]         static pressure at inlet
     P_out                             [Pa]         static pressure at outlet
     dP                                [Pa]         pressure increase
     P_chamb                           [Pa]         section static pressure
     V_chamb                           [m^3]        section volume
-    T_t_in                            [K]          stagnation temperature in
     T_t_out                           [K]          stagnation temperature out
     T_in                              [K]          static temperature in
     T_out                             [K]          static temperature out
-    u_in                              [m/s]        velocity in
     u_out                             [m/s]        velocity out
     r                                 [mm/s]       burn rate
     q                                 [kg/s]       rate of generation of products
@@ -65,11 +59,6 @@ class SRM(Model):
         exec parse_variables(SRM.__doc__)
         constraints = [
                     # Initializing inlet constraints
-                    mdot_in[0] == 1e-20*units('kg/s'),
-                    u_in[0]    == 1e-20*units('m/s'),
-                    rho_in[0]  == 1e-20*units('kg/(m^3)'),
-                    P_in[0]    == P_t_in,
-                    T_t_in[0]  == T_amb,
                     T_in[0]    == T_amb,
                     # Flow acceleration (conservation of momentum)
                     # Note: assumes constant rate of burn through the chamber
@@ -85,32 +74,31 @@ class SRM(Model):
             constraints += [
                 # Inlet temperatures
                 Tight([T_t_out[0]*mdot_out[0] <= q[0]*T_amb + q[0]*k_comb_p/c_p]),
+                Tight([P_chamb[0] == P_t_out[0]]),
             ]
 
         for i in range(1,n):
             constraints += [
-                # Mass flow rate
-                rho_in * u_in * A_in == mdot_in,
                 # Coupling
-                mdot_in[i] == mdot_out[i-1],
-                P_in[i]    == P_out[i-1],
-                P_t_in[i]  == P_t_out[i-1],
+                mdot_out[i] >= mdot_out[i-1],
                 T_in[i]    == T_out[i-1],
-                T_t_in[i]  == T_t_out[i-1],
-                rho_in[i]  == rho_out[i-1],
                 A_in[i]    == A_out[i-1],
-                u_in[i]    == u_out[i-1],
+                # Pressure increase
+                P_out[i] + dP <= P_out[i-1],
+                # Chamber pressure
+                P_chamb[i]**2 == P_out[i-1]*P_out[i],
             ]
             with SignomialsEnabled():
                 constraints += [
                 # Flow acceleration (conservation of momentum)
                 # Note: assumes constant rate of burn through the chamber
-                dP[i] + rho_in[i]*u_in[i]**2 >= q[i]*u_out[i]/V_chamb[i]*(2./3.*l_sec) +
-                    rho_in[i]*u_in[i]*u_out[i],
+                dP[i] + rho_out[i-1]*u_out[i-1]**2 >= q[i]*u_out[i]/V_chamb[i]*(2./3.*l_sec) +
+                    rho_out[i-1]*u_out[i-1]*u_out[i],
                 # Temperatures
-                Tight([T_t_out[i]*mdot_out[i] <= mdot_in[i]*T_t_in[i] + q[i]*T_amb + q[i]*k_comb_p/c_p]),
+                Tight([T_t_out[i]*mdot_out[i] <= mdot_out[i-1]*T_t_out[i-1] + q[i]*T_amb + q[i]*k_comb_p/c_p]),
                 # Mass flows
-                Tight([mdot_in[i] + q[i] >= mdot_out[i]]),
+                Tight([mdot_out[i-1] + q[i] >= mdot_out[i]]),
+
                 ]
 
         # for i in range(n):
@@ -129,13 +117,9 @@ class SRM(Model):
                 A_p_out + r*l_b*dt <= A_p_in,
                 # Ideal gas law
                 P_out == rho_out*R*T_out,
-                # Pressure increase
-                P_out + dP <= P_in,
                 # Making sure burn surface length is feasible
                 l_b >= 2*np.pi**0.5*(A_avg)**0.5,
                 l_b <= l_b_max*2*np.pi**0.5*(A_avg)**0.5,
-                # Chamber pressure
-                P_chamb**2 == P_in*P_out,
                 # Constraining flow speed
                 u_out**2 <= 1.4*R*T_out,
                 ]
@@ -143,8 +127,6 @@ class SRM(Model):
             constraints += [
                     # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
                     Tight([r == r_c * (P_chamb/1e6*units('1/Pa'))]), #** 0.35 * (1 + 0.5*r_k*(u_in+u_out))]),
-                    # Mass flows
-                    mdot_out >= mdot_in,
                     # Stagnation quantities
                     Tight([P_t_out <= P_out + 0.5*rho_out*u_out**2]),
                     Tight([T_t_out <= T_out + u_out**2/(2*c_p)]),
