@@ -46,11 +46,21 @@ class SRM(Model):
     P_chamb                           [Pa]         section static pressure
     V_chamb                           [m^3]        section volume
     T_t_out                           [K]          stagnation temperature out
+    T_t_exit                          [K]          exit stagnation temperature
     T_in                              [K]          static temperature in
     T_out                             [K]          static temperature out
     u_out                             [m/s]        velocity out
     r                                 [mm/s]       burn rate
     q                                 [kg/s]       rate of generation of products
+
+    Upper Unbounded
+    ---------------
+    A_p_avg, l_b_max, radius
+
+    Lower Unbounded
+    ---------------
+    dt, A_p_out, T_t_exit
+
     """
 
     def setup(self, n):
@@ -68,6 +78,8 @@ class SRM(Model):
                     n*l_sec    == l,
                     # Getting geometric average of propellant remaining
                     A_p_avg**n >= np.prod(A_p_out),
+                    # Defining exit stagnation temperature
+                    T_t_exit == T_t_out[-1],
          ]
         with SignomialsEnabled():
             constraints += [
