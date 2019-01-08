@@ -11,6 +11,7 @@ Tight.reltol = 1e-3
 
 
 class SRM(Model):
+
     """ basic SRM model
 
     Variables
@@ -20,6 +21,7 @@ class SRM(Model):
     l_sec                             [m]          section length
     dt                                [s]          time step
     l_b_max                           [-]          maximum burn length factor
+    T_t_exit                          [K]          exit stagnation temperature
     R                    287          [J/kg/K]     gas constant of air
     T_amb                273          [K]          ambient temperature
     r_c                  5.606        [mm/s]       burn rate coefficient
@@ -27,7 +29,6 @@ class SRM(Model):
     rho_p                1700         [kg/m^3]     propellant density
     k_comb_p             1.23e6       [J/kg]       propellant specific heat of combustion
     c_p                  1000         [J/kg/K]     specific heat of combustion products
-    A_p_avg                           [m^2]        average sectional propellant
 
     Variables of length n
     ---------------------
@@ -35,6 +36,7 @@ class SRM(Model):
     A_in                              [m^2]        area in
     A_out                             [m^2]        area out
     A_avg                             [m^2]        average area
+    A_slack                           [-]          area slack variable
     A_b                               [m^2]        burn area
     A_p_in                            [m^2]        initial propellant area
     A_p_out                           [m^2]        final propellant area
@@ -46,8 +48,6 @@ class SRM(Model):
     P_chamb                           [Pa]         section static pressure
     V_chamb                           [m^3]        section volume
     T_t_out                           [K]          stagnation temperature out
-    T_t_exit                          [K]          exit stagnation temperature
-    T_in                              [K]          static temperature in
     T_out                             [K]          static temperature out
     u_out                             [m/s]        velocity out
     r                                 [mm/s]       burn rate
@@ -55,7 +55,7 @@ class SRM(Model):
 
     Upper Unbounded
     ---------------
-    A_p_avg, l_b_max, radius
+    l_b_max, radius, A_slack
 
     Lower Unbounded
     ---------------
@@ -67,8 +67,9 @@ class SRM(Model):
         # where n is the number of sections
         exec parse_variables(SRM.__doc__)
         constraints = [
-                    # Initializing inlet constraints
-                    T_in[0]    == T_amb,
+                    # Bounding area ratio
+                    A_ratio[:] >= 0.2,
+                    A_ratio[:] <= 5,
                     # Flow acceleration (conservation of momentum)
                     # Note: assumes constant rate of burn through the chamber
                     dP[0] == q[0]*u_out[0]/V_chamb[0]*(2./3.*l_sec),
@@ -77,7 +78,7 @@ class SRM(Model):
                     # Setting section lengths,
                     n*l_sec    == l,
                     # Getting geometric average of propellant remaining
-                    A_p_avg**n >= np.prod(A_p_out),
+                    # A_p_avg**n >= np.prod(A_p_out),
                     # Defining exit stagnation temperature
                     T_t_exit == T_t_out[-1],
          ]
@@ -92,7 +93,6 @@ class SRM(Model):
             constraints += [
                 # Coupling
                 mdot_out[i] >= mdot_out[i-1],
-                T_in[i]    == T_out[i-1],
                 A_in[i]    == A_out[i-1],
                 # Pressure increase
                 P_out[i] + dP <= P_out[i-1],
@@ -114,8 +114,6 @@ class SRM(Model):
 
         # for i in range(n):
         constraints += [
-                # Taking averages,
-                A_in*A_out == A_avg**2,
                 # Volume of chamber
                 V_chamb == A_avg*l_sec,
                 # Area ratio
@@ -136,8 +134,12 @@ class SRM(Model):
                 ]
         with SignomialsEnabled():
             constraints += [
+                    # Taking averages (with a slack variable)
+                    A_in + A_out <= 2*A_avg*A_slack,
+                    A_slack*(A_in + A_out) >= 2*A_avg,
+                    A_slack >= 1,
                     # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
-                    Tight([r == r_c * (P_chamb/1e6*units('1/Pa'))]), #** 0.35 * (1 + 0.5*r_k*(u_in+u_out))]),
+                    Tight([r == r_c * (P_chamb/1e6*units('1/Pa'))** 0.35]), # * (1 + 0.5*r_k*(u_in+u_out))]),
                     # Stagnation quantities
                     Tight([T_t_out <= T_out + u_out**2/(2*c_p)]),
                     # Constraining areas
@@ -146,7 +148,7 @@ class SRM(Model):
         return constraints
 
 if __name__ == "__main__":
-    n = 3
+    n = 5
     m = SRM(n)
     radius = 10*units('cm')
     m.substitutions.update({
@@ -160,7 +162,7 @@ if __name__ == "__main__":
         # m.A_out           :0.9*np.pi*radius**2,
         m.dt              :0.01*units('s'),
     })
-    m.cost = 1/(m.mdot_out[-1]*m.T_t_out[-1])
+    m.cost = 1/(m.mdot_out[-1]*m.T_t_out[-1])*np.prod(m.A_slack)
     m = Model(m.cost, Bounded(m), m.substitutions)
     m_relax = relaxed_constants(m)
     sol = m_relax.localsolve(reltol = 1e-3)
