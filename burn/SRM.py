@@ -24,7 +24,7 @@ class SRM(Model):
     R                    287          [J/kg/K]     gas constant of air
     T_amb                273          [K]          ambient temperature
     r_c                  5.606        [mm/s]       burn rate coefficient
-    r_k                  0.05         [1/(m/s)]    erosive burn rate coefficient
+    r_k                  0.05       [1/(m/s)]    erosive burn rate coefficient
     rho_p                1700         [kg/m^3]     propellant density
     k_comb_p             1.23e6       [J/kg]       propellant specific heat of combustion
     c_p                  1000         [J/kg/K]     specific heat of combustion products
@@ -71,7 +71,7 @@ class SRM(Model):
                     A_ratio[:] <= 5,
                     # Flow acceleration (conservation of momentum)
                     # Note: assumes constant rate of burn through the chamber
-                    dP[0] == q[0]*u_out[0]/V_chamb[0]*(2./3.*l_sec),
+                    dP[0] == q[0]*u_out[0]/V_chamb[0]*l_sec,
                     # Mass flow
                     q[0] == mdot_out[0],
                     # Setting section lengths,
@@ -82,11 +82,15 @@ class SRM(Model):
         with SignomialsEnabled():
             constraints += [
                 # Inlet temperatures
-                SignomialEquality(T_t_out[0]*mdot_out[0], q[0]*T_amb + q[0]*k_comb_p/c_p),
+                T_t_out[0]*mdot_out[0] <= q[0]*T_amb + q[0]*k_comb_p/c_p,
                 T_t_out >= T_amb,
+                T_t_out[0] >= T_out + u_out[0]**2/(2*c_p),
                 # Tight([A_slack[0]*T_t_out[0]*mdot_out[0] >= q[0]*T_amb + q[0]*k_comb_p/c_p]),
                 # Tight([A_slack[0]*P_chamb[0] >= P_out[0] + 0.25*rho_out[0]*u_out[0]**2]),
                 SignomialEquality(P_chamb[0], P_out[0] + 0.25*rho_out[0]*u_out[0]**2),
+                # # Burn rate
+                # Tight([r[0] >= r_c * (P_chamb[0]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*u_out[0])]),
+
             ]
 
         for i in range(1,n):
@@ -98,20 +102,21 @@ class SRM(Model):
                 P_out[i] + dP[i] <= P_out[i-1],
                 # Chamber pressure
                 P_chamb[i]**2 == P_out[i-1]*P_out[i],
-                # Constraining velocities
-                u_out[i] >= u_out[i-1],
+                # Constraining pressures
+                P_chamb[i] <= P_chamb[i-1],
             ]
             with SignomialsEnabled():
                 constraints += [
                 # Flow acceleration (conservation of momentum)
                 # Note: assumes constant rate of burn through the chamber
-                dP[i] + rho_out[i-1]*u_out[i-1]**2 >= q[i]*u_out[i]/V_chamb[i]*(2./3.*l_sec) +
+                dP[i] + rho_out[i-1]*u_out[i-1]**2 >= q[i]*u_out[i]/V_chamb[i]*l_sec +
                     rho_out[i-1]*u_out[i-1]*u_out[i],
                 # Temperatures
                 Tight([T_t_out[i]*mdot_out[i] <= mdot_out[i-1]*T_t_out[i-1] + q[i]*T_amb + q[i]*k_comb_p/c_p]), #
                 # Mass flows
                 Tight([mdot_out[i-1] + q[i] >= mdot_out[i]]),
-
+                # # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
+                # Tight([r[i] >= r_c * (P_chamb[i]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*(u_out[i]+u_out[i-1]))]),
                 ]
 
         # for i in range(n):
@@ -164,7 +169,7 @@ if __name__ == "__main__":
         # m.A_out           :0.9*np.pi*radius**2,
         m.dt              :0.25*units('s'),
     })
-    m.cost = 1/(m.mdot_out[n-1]*m.T_t_out[n-1])*np.prod(m.A_slack)
+    m.cost = 1/(m.mdot_out[n-1]*m.T_t_out[n-1])*np.prod(m.A_slack)**3
     m = Model(m.cost, Bounded(m), m.substitutions)
     m_relax = relaxed_constants(m)
-    sol = m_relax.localsolve(reltol = 1e-3)
+    sol = m.localsolve(reltol = 1e-3)
