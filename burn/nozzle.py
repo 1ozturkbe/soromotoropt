@@ -1,5 +1,6 @@
 from gpkit import Variable, Model, parse_variables, units
 from gpkit import SignomialsEnabled, SignomialEquality, Vectorize
+from gpkit.constraints.tight import Tight
 
 from relaxed_constants import relaxed_constants, post_process
 
@@ -56,10 +57,10 @@ class NozzlePerformance(Model):
     P_e                                [Pa]       exit static pressure
     T_e                                [K]        exit static temperature
     M_e                                [-]        jet Mach number
-    chokeConstant          1.281       [-]        choked flow constant
+    chokeConstant                      [-]        choked flow constant
     P_atm                  101000      [Pa]       atmospheric pressure
-    c_p                    1000        [J/kg/K]   specific heat of air (constant pressure)
-    c_v                    718         [J/kg/K]   specific heat of air (constant volume)
+    c_p                                [J/kg/K]   specific heat of air (constant pressure)
+    c_v                                [J/kg/K]   specific heat of air (constant volume)
     R                      287         [J/kg/K]   gas constant of air
     gm1                    0.4         [-]        gamma-1
     gp1                    2.4         [-]        gamma+1
@@ -67,11 +68,11 @@ class NozzlePerformance(Model):
 
     Upper Unbounded
     ---------------
-    rho_e, mdot, rho_star, P_e, M_e, P_star, c_star, P_t, T_t
+    rho_e, mdot, rho_star, P_e, M_e, P_star, c_star, P_t
 
     Lower Unbounded
     ---------------
-    a_star, u_star, T_star, T_e, a_e, c_T
+    T_e, a_e, c_T
 
     LaTex Strings
     -------------
@@ -93,6 +94,9 @@ class NozzlePerformance(Model):
     def setup(self,nozzle):
         exec parse_variables(NozzlePerformance.__doc__)
         constraints = [
+            # Gas constants
+            c_p == g/gm1*R,
+            c_v == 1./gm1*R,
             # Mass flow rate
             mdot == rho_star*u_star*nozzle.A_star,
             mdot == rho_e*u_e*nozzle.A_e,
@@ -104,18 +108,20 @@ class NozzlePerformance(Model):
             P_e == rho_e*R*T_e,
             P_star == rho_star*R*T_star,
             # Stagnation pressure and static pressure at throat
-            (P_t/P_star) == (2.4/2)**(1.4/0.4),
+            (P_t/P_star) == (2.4/2.)**(1.4/0.4),
+            T_t/T_star == (2.4/2.),
             # Choked throat relations
             mdot*c_p**0.5*T_t**0.5/nozzle.A_star/P_t == chokeConstant,
-            u_star/a_star == 1,
-            # Stagnation temperature to velocity at exit
-            2*c_p*T_e + u_e**2 <= 2*c_p*T_t,
+            u_star/a_star == 1.,
+            # Stagnation temperature
+            2.*c_p*T_e + u_e**2. <= 2.*c_p*T_t,
+            Tight([T_star + u_star**2./(2.*c_p) <= T_t]),
             # Exit Mach number
             M_e == u_e/a_e,
-            M_e >= 1,
+            M_e >= 1.,
             # Speed of sound
-            a_e**2 == g*R*T_e,
-            a_star**2 == g*R*T_star,
+            a_e**2. == g*R*T_e,
+            a_star**2. == g*R*T_star,
             # Exit pressure
             P_e == rho_e*R*T_e,
             (T_e/T_t)**(1.4/.4) == P_e/P_t,
@@ -124,8 +130,6 @@ class NozzlePerformance(Model):
             constraints += [
                 # Thrust
                 T <= mdot*u_e + (P_e - P_atm)*nozzle.A_e,
-                # Speed of sound at throat
-                SignomialEquality(T_star + u_star**2/(2*c_p),T_t),
             ]
         return constraints
 
@@ -158,11 +162,19 @@ def test_Nozzle():
                             'mdot':        150*units('kg/s'),
                             })
     m.cost = 1/sum(m.nozzlePerformance.T)
-    m_relax = relaxed_constants(m, None, [m.nozzlePerformance.chokeConstant])
-    sol = m_relax.localsolve(verbosity=0)
-    post_process(sol)
+    sol = m.localsolve(verbosity=0)
     print sol.table()
 
 
 if __name__ == "__main__":
-    test_Nozzle()
+    # test_Nozzle()
+    print "Testing Nozzle..."
+    m = Rocket(1)
+    m.substitutions.update({
+                            'k_A':     5,
+                            'T_t':         1800*units('K'),
+                            'P_t':         5e8*units('Pa'),
+                            'mdot':        150*units('kg/s'),
+                            })
+    m.cost = 1/sum(m.nozzlePerformance.T)
+    sol = m.localsolve(verbosity=0)
