@@ -123,7 +123,6 @@ class NozzlePerformance(Model):
             a_e**2. == g*R*T_e,
             a_star**2. == g*R*T_star,
             # Exit pressure
-            P_e == rho_e*R*T_e,
             (T_e/T_t)**(1.4/.4) == P_e/P_t,
             ]
         with SignomialsEnabled():
