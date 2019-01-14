@@ -13,7 +13,7 @@ class Section(Model):
     Variables
     -------------
     radius                            [m]          radius of section
-    A_ratio                            [-]          area ratio
+    k_A                            [-]          area ratio
     A_in                              [m^2]        area in
     A_out                             [m^2]        area out
     A_avg                             [m^2]        average area
@@ -60,7 +60,7 @@ class Section(Model):
             # Volume of chamber
             V_chamb == A_avg*l,
             # Area ratio
-            A_in / A_out == A_ratio,
+            A_in / A_out == k_A,
             # Mass flow rate
             rho_in * u_in * A_in == mdot_in,
             rho_out * u_out * A_out == mdot_out,
@@ -80,6 +80,8 @@ class Section(Model):
             # Making sure burn surface length is feasible
             l_b >= 2*np.pi**0.5*(A_avg)**0.5,
             l_b <= l_b_max*2*np.pi**0.5*(A_avg)**0.5,
+            # Constraining areas
+            Tight([A_avg + A_p_in <= np.pi*radius**2]),
 
         ]
         with SignomialsEnabled():
@@ -88,7 +90,7 @@ class Section(Model):
                 # Note: assumes constant rate of burn through the chamber
                 dP + rho_in*u_in**2 >= q*u_out/V_chamb*(2./3.*l) + rho_in*u_in*u_out,
                 # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
-                SignomialEquality(r, r_c * (P_chamb/1e6*units('1/Pa')) ** 0.35 * (1 + 0.5*r_k*(u_in+u_out))),
+                Tight([r >= r_c * (P_chamb/1e6*units('1/Pa')) ** 0.35 * (1 + 0.5*r_k*(u_in+u_out))]),
                 # Mass flows
                 Tight([mdot_in + q >= mdot_out]),
                 mdot_out >= mdot_in,
@@ -97,8 +99,7 @@ class Section(Model):
                 # Stagnation quantities
                 Tight([P_t_out <= P_out + 0.5*rho_out*u_out**2]),
                 Tight([T_t_out <= T_out + u_out**2/(2*c_p)]),
-                # Constraining areas
-                SignomialEquality(A_avg + A_p_in, np.pi*radius**2),
+
 
             ]
         return constraints

@@ -20,18 +20,19 @@ class SRM(Model):
     l                                 [m]          total length
     l_sec                             [m]          section length
     dt                                [s]          time step
-    l_b_max                           [-]          maximum burn length factor
+    l_b_max              3            [-]          maximum burn length factor
+    k_A_max              5            [-]          maximum area ratio
     R                    287          [J/kg/K]     gas constant of air
     T_amb                273          [K]          ambient temperature
     r_c                  5.606        [mm/s]       burn rate coefficient
-    r_k                  0.05       [1/(m/s)]    erosive burn rate coefficient
+    r_k                  0.05        [1/(m/s)]    erosive burn rate coefficient
     rho_p                1700         [kg/m^3]     propellant density
     k_comb_p             1.23e6       [J/kg]       propellant specific heat of combustion
     c_p                  1000         [J/kg/K]     specific heat of combustion products
 
     Variables of length n
     ---------------------
-    A_ratio                           [-]          area ratio
+    k_A                               [-]          area ratio
     A_in                              [m^2]        area in
     A_out                             [m^2]        area out
     A_avg                             [m^2]        average area
@@ -54,11 +55,39 @@ class SRM(Model):
 
     Upper Unbounded
     ---------------
-    l_b_max, radius, A_slack
+    A_slack
 
     Lower Unbounded
     ---------------
     dt, A_p_out
+
+    LaTex Strings
+    -------------
+    radius                   \mathrm{r}
+    l                        \mathrm{l}
+    l_sec                    l_{sec}
+    dt                       \delta t
+    l_b_max                  l_{b,\mathrm{max}}
+    R                        R
+    T_amb                    T_{\mathrm{amb}}
+    rho_p                    \rho_p
+    k_comb_p                 k_{p,\mathrm{comb}}
+    k_A_max                  k_{A,\mathrm{max}}
+    A_in                     A_{\mathrm{in}}
+    A_out                    A_{\mathrm{out}}
+    A_avg                    A_{avg}
+    A_slack                  A_{slack}
+    A_p_in                   A_{p,\mathrm{in}}
+    A_p_out                  A_{p,\mathrm{out}}
+    mdot_out                 \dot{m}_{\mathrm{out}}
+    rho_out                  \rho_{\mathrm{out}}
+    P_out                    P_{\mathrm{out}}
+    dP                       \delta P
+    P_chamb                  P_{\mathrm{chamb}}
+    V_chamb                  V_{\mathrm{chamb}}
+    T_t_out                  T_{t_{\mathrm{out}}}
+    T_out                    T_{\mathrm{out}}
+    u_out                    u_{\mathrm{out}}
 
     """
 
@@ -67,8 +96,8 @@ class SRM(Model):
         exec parse_variables(SRM.__doc__)
         constraints = [
                     # Bounding area ratio
-                    A_ratio[:] >= 0.2,
-                    A_ratio[:] <= 5,
+                    k_A[:] >= 1/k_A_max,
+                    k_A[:] <= k_A_max,
                     # Flow acceleration (conservation of momentum)
                     # Note: assumes constant rate of burn through the chamber
                     dP[0] == q[0]*u_out[0]/V_chamb[0]*l_sec,
@@ -124,7 +153,7 @@ class SRM(Model):
                 # Volume of chamber
                 V_chamb == A_avg*l_sec,
                 # Area ratio
-                A_in / A_out == A_ratio,
+                A_in / A_out == k_A,
                 # Mass flow rate
                 rho_out * u_out * A_out == mdot_out,
                 # Product generation rate
@@ -142,15 +171,15 @@ class SRM(Model):
         with SignomialsEnabled():
             constraints += [
                     # Taking averages (with a slack variable)
-                    A_in + A_out <= 2*A_avg*A_slack,
-                    A_slack*(A_in + A_out) >= 2*A_avg,
+                    A_in*A_out == A_avg**2,
                     A_slack >= 1,
                     # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
                     Tight([r == r_c * (P_chamb/1e6*units('1/Pa'))** 0.35]), # * (1 + 0.5*r_k*(u_in+u_out))]),
                     # Stagnation quantities
                     Tight([T_t_out <= T_out + u_out**2/(2*c_p)]),
                     # Constraining areas
-                    SignomialEquality(A_avg + A_p_in, np.pi*radius**2),
+                    Tight([A_avg + A_p_in <= A_slack*np.pi*radius**2]),
+                    Tight([(A_avg + A_p_in)*A_slack >= np.pi*radius**2]),
                 ]
         return constraints
 
@@ -159,17 +188,16 @@ if __name__ == "__main__":
     m = SRM(n)
     radius = 10*units('cm')
     m.substitutions.update({
+        m.k_A_max         :5,
         m.radius          :radius,
-        m.l_b_max         :3,
         m.l               :200*units('cm'),
         m.A_p_in          :0.1*np.ones(n)*np.pi*radius**2,
-        # m.A_p_out         :0.05*np.ones(n)*np.pi*radius**2,
-        # m.A_ratio         :np.ones(n),
+        m.A_p_out         :0.05*np.ones(n)*np.pi*radius**2,
+        # m.k_A         :np.ones(n),
         # m.A_in            :0.9*np.pi*radius**2,
         # m.A_out           :0.9*np.pi*radius**2,
         m.dt              :0.25*units('s'),
     })
-    m.cost = 1/(m.mdot_out[n-1]*m.T_t_out[n-1])*np.prod(m.A_slack)**3
+    m.cost = 1/(m.mdot_out[n-1]*m.T_t_out[n-1])*np.prod(m.A_slack**3)
     m = Model(m.cost, Bounded(m), m.substitutions)
-    m_relax = relaxed_constants(m)
     sol = m.localsolve(reltol = 1e-3)

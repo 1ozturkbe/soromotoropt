@@ -8,29 +8,29 @@ class Nozzle(Model):
 
     Variables
     -------------
-    A_ratio                            [-]        nozzle area ratio
-    A_star                             [m^2]      area of throat
-    A_e                               [m^2]      nozzle exit area
+    k_A                            [-]        nozzle area ratio
+    A_star                         [m^2]      area of throat
+    A_e                            [m^2]      nozzle exit area
 
     Upper Unbounded
     ---------------
-    A_star, A_e, A_ratio
+    A_star, A_e, k_A
 
     Lower Unbounded
     ---------------
-    A_star, A_e, A_ratio
+    A_star, A_e, k_A
 
     LaTex Strings
     -------------
     A_star        A_{star}
-    A_ratio       A_{ratio}
+    k_A       A_{ratio}
 
     """
     def setup(self):
         exec parse_variables(Nozzle.__doc__)
         constraints = [
             # Area ratio
-            A_e/A_star == A_ratio,
+            A_e/A_star == k_A,
             ]
         return constraints
 
@@ -45,25 +45,25 @@ class NozzlePerformance(Model):
     a_star                             [m/s]      speed of sound at throat
     P_star                             [Pa]       pressure at throat
     T_star                             [K]        temperature at throat
-    P_t                               [Pa]       stagnation pressure
-    T_t                               [K]        stagnation temperature
-    mdot                              [kg/s]     mass flow rate
-    T                                 [N]        thrust
+    P_t                                [Pa]       stagnation pressure
+    T_t                                [K]        stagnation temperature
+    mdot                               [kg/s]     mass flow rate
+    T                                  [N]        thrust
     c_T                                [-]        thrust coefficient
-    rho_e                             [kg/m^3]   density at exit
-    u_e                               [m/s]      horizontal jet velocity
-    a_e                               [m/s]      speed of sound at exit
-    P_e                               [Pa]       exit static pressure
-    T_e                               [K]        exit static temperature
-    M_e                               [-]        jet Mach number
-    chokeConstant          1.281      [-]        choked flow constant
-    P_atm                  101000     [Pa]       atmospheric pressure
-    c_p                    1000       [J/kg/K]   specific heat of air (constant pressure)
-    c_v                    718        [J/kg/K]   specific heat of air (constant volume)
-    R                      287        [J/kg/K]   gas constant of air
-    gm1                    0.4        [-]        gamma-1
-    gp1                    2.4        [-]        gamma+1
-    g                      1.4        [-]        gamma
+    rho_e                              [kg/m^3]   density at exit
+    u_e                                [m/s]      horizontal jet velocity
+    a_e                                [m/s]      speed of sound at exit
+    P_e                                [Pa]       exit static pressure
+    T_e                                [K]        exit static temperature
+    M_e                                [-]        jet Mach number
+    chokeConstant          1.281       [-]        choked flow constant
+    P_atm                  101000      [Pa]       atmospheric pressure
+    c_p                    1000        [J/kg/K]   specific heat of air (constant pressure)
+    c_v                    718         [J/kg/K]   specific heat of air (constant volume)
+    R                      287         [J/kg/K]   gas constant of air
+    gm1                    0.4         [-]        gamma-1
+    gp1                    2.4         [-]        gamma+1
+    g                      1.4         [-]        gamma
 
     Upper Unbounded
     ---------------
@@ -98,7 +98,6 @@ class NozzlePerformance(Model):
             mdot == rho_e*u_e*nozzle.A_e,
             # Characteristic velocity
             c_star == P_t*nozzle.A_star/mdot,
-            c_star**2 == 1/1.4*(2.4/2)**(2.4/.4)*R*T_t,
             # Thrust coefficient
             T == mdot*c_star*c_T,
             # Universal gas law
@@ -153,13 +152,14 @@ def test_Nozzle():
     print "Testing Nozzle..."
     m = Rocket(1)
     m.substitutions.update({
+                            'k_A':     5,
                             'T_t':         1800*units('K'),
-                            'P_t':         5000*units('kPa'),
-                            'mdot':        1*units('kg/s'),
+                            'P_t':         5e8*units('Pa'),
+                            'mdot':        150*units('kg/s'),
                             })
     m.cost = 1/sum(m.nozzlePerformance.T)
     m_relax = relaxed_constants(m, None, [m.nozzlePerformance.chokeConstant])
-    sol = m_relax.localsolve(verbosity=2)
+    sol = m_relax.localsolve(verbosity=0)
     post_process(sol)
     print sol.table()
 

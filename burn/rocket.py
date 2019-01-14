@@ -4,7 +4,7 @@ from gpkit.constraints.bounded import Bounded
 from gpkit.constraints.tight import Tight
 
 from nozzle import Nozzle, NozzlePerformance
-from basicSRM import Section
+from SRM import SRM
 
 from relaxed_constants import relaxed_constants, post_process
 
@@ -14,92 +14,91 @@ Tight.reltol = 1e-3
 
 class Rocket(Model):
     """
-    Basic 1-section, many timestep Rocket model
+    Basic rocket model
 
     Variables
     ---------
     t_T                  [s]     total burn time
-    c_TV                 [-]     thrust variation coefficient
     r                    [m]     shell radius
     l                    [m]     total length
     P_max                [Pa]    maximum chamber pressure
+
+    Variables of length nsections
+    -----------------------------
+    A_fuel               [m^2]   initial fuel areas
+
     """
 
-    def setup(self, nt):
+    def setup(self, nt, nsections):
         exec parse_variables(Rocket.__doc__)
         self.nt = nt
+        self.nsections = nsections
         self.nozzle = Nozzle()
         with Vectorize(nt):
             self.nozzlePerformance = NozzlePerformance(self.nozzle)
-            self.section = Section()
+            self.section = SRM(nsections)
 
         constraints = [
-            # All fuel burnt
-            self.section.A_p_out[nt-1] == 1e-20*units('m^2'),
-            # Limiting nozzle size
+            # Limiting nozzle size to cross-sectional area
             self.nozzle.A_e <= np.pi*r**2,
+            # Equal time segments
+            self.section.dt == t_T/nt,
+            # All fuel is consumed
+            self.section.A_p_out[:,-1] >= 1e-20*np.ones(nsections)*np.pi*r**2,
+            A_fuel == self.section.A_p_in[:,0],
         ]
 
         for i in range(nt-1):
             constraints += [
                 # Decreasing fuel
-                self.section.A_p_out[i] == self.section.A_p_in[i+1],
-                # Equal time segments
-                self.section.dt[i] == self.section.dt[i+1],
+                self.section.A_p_out[:, i] == self.section.A_p_in[:, i+1],
+                # Decreasing sectional area
+                self.section.A_in[:,i] <= self.section.A_in[:,i+1],
+                self.section.A_out[:,i] <= self.section.A_out[:,i+1],
             ]
 
         for i in range(nt):
             constraints += [
-                # Thrust variation coefficient
-                c_TV >= np.prod(self.nozzlePerformance.T)**(1./nt)/self.nozzlePerformance.T[i],
                 # Rocket length is section length,
                 self.section.radius[i] == r,
                 self.section.l[i] == l,
-                # Setting inlet conditions
-                self.section.P_in[i] == self.section.P_t_in[i],
-                self.section.mdot_in[i] == 1e-20*units('kg/s'),
-                self.section.u_in[i] == 1e-20*units('m/s'),
-                self.section.T_t_in[i] == self.section.T_amb[i],
-                # self.section.T_in[i] == self.section.T_amb[i],
                 # Matching nozzle and section conditions
-                self.nozzlePerformance.mdot[i] == self.section.mdot_out[i],
-                self.nozzlePerformance.P_t[i] == self.section.P_t_out[i],
-                self.nozzlePerformance.T_t[i] == self.section.T_t_out[i],
-                # self.nozzlePerformance.u_star[i] >= self.section.u_out[i],
-                # self.nozzlePerformance.P_star[i] <= self.section.P_out[i],
-                # Same area ratio (TODO: relax)
-                self.section.A_in[i] == self.section.A_out[i],
-                # Dumb bounds (cutting planes)
-                self.section.A_p_in[i] >= self.section.A_p_out[i],
+                self.nozzlePerformance.mdot[i] == self.section.mdot_out[nsections-1, i],
+                self.nozzlePerformance.T_t[i] == self.section.T_t_out[nsections-1, i],
                 # Maximum chamber pressure
-                self.section.P_chamb <= P_max,
-
-        ]
-
-        with SignomialsEnabled():
-            constraints += [
-
+                self.section.P_chamb[:, i] <= P_max,
             ]
+            with SignomialsEnabled():
+                constraints += [
+                # Matching nozzle stagnation pressure
+                self.nozzlePerformance.P_t[i] <= self.section.P_out[nsections-1, i] +
+                                0.5*self.section.rho_out[nsections-1, i]*self.section.u_out[nsections-1, i]**2,
+                ]
 
         return constraints, self.nozzle, self.nozzlePerformance, self.section
 
 if __name__ == "__main__":
-    nt = 10
-    m = Rocket(nt)
-    radius = 1*units('m')
-    length = 0.2*units('m')
+    nt = 1
+    nsections = 5
+    m = Rocket(nt, nsections)
+    radius = 0.1*units('m')
+    length = 2*units('m')
     m.substitutions.update({
-        m.c_TV                                       :2,
-        # m.nozzle.A_ratio                              :5,
+        m.nozzle.k_A                                 :5,
+        m.t_T                                        :0.25*units('s'),
         m.l                                          :length,
         m.r                                          :radius,
-        m.P_max                                      :10.**8*units('Pa'),
-        m.t_T                                        :100*units('s'),
-        m.section.A_p_in[0]                          :0.5*np.pi*radius**2,
-        m.section.T_amb                              :300*np.ones(nt)*units('K'),
+        m.P_max                                      :2*10.**10*units('Pa'),
+        m.section.l_b_max                            :3*np.ones(nt),
+        m.nozzlePerformance.T                        :np.linspace(1e5,2e5,nt)*units('N'),
+        # m.A_fuel                                     :0.1*np.ones(nsections)*np.pi*radius**2,
     })
-    m.cost = 1/np.prod(m.nozzlePerformance.T*m.section.dt)
+    for i in range(nt):
+        m.substitutions.update()
+
+    m.cost = 1/(m.section.mdot_out[nsections-1,-1]*m.section.T_t_out[nsections-1,-1])*np.prod(m.section.A_slack**3)
+        #1*np.prod(m.section.A_slack**3)*np.sum(m.A_fuel) #np.prod(m.nozzlePerformance.T**-1)
     m = Model(m.cost, Bounded(m), m.substitutions)
-    m_relax = relaxed_constants(m)
-    sol = m_relax.localsolve()
+    # m_relax = relaxed_constants(m)
+    sol = m.localsolve(verbosity=4)
     post_process(sol)
