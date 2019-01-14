@@ -1,0 +1,121 @@
+	\section{Approach}
+	
+	To tackle this problem, we will first make a series of approximations to make it more tractable. 
+		
+	\subsection{Assumptions}
+	\label{sec:assumptions}
+	
+	\begin{itemize}
+		\item \textbf{The internal flow is steady and isentropic:} This will allow us to make approximations for the static pressure inside the rocket, which is related to the burn rate.
+		\item \textbf{Pressure dependence on the burn rate is defined by the Saint-Robert's law:} $r = a P_c^n$
+		\item \textbf{Constant radial burn rate throughout the chamber:} This allows us to treat the problem as a 2D problem. This approximation is justifiable since there is a relative pressure drop in the bore as the fluid accelerates through it. The greater rate of erosive burning near the exit port is offset by the lower pressure near the port. 
+		\item \textbf{The grain is not temperature sensitive:} This is definitely not a correct assumption, but since this is a proof of concept we can assume this in the beginning. 
+	\end{itemize}
+	
+	\subsection{First stage problem}
+	
+	Starting with $n_{x}$ radial slices of the rocket evolving over $n_t$ time steps, we devise a low-fidelity method to determine how the aggregate geometric properties of the rocket evolve over time, such as the cross-sectional area and arc length of the fuel. 
+
+	%		\section{Preliminary Optimization Problem}
+%	
+%	To test whether or not the method of vector translations can be solved
+%	in a mixed integer convex form, we formulate the following problem 
+%	
+%	\subsection{Parameters}
+%	\begin{itemize}
+%	\item \textbf{$n_{ctrl}$:} number of control points
+%	\item \textbf{$n_t$:} number of time steps
+%	\item \textbf{$r$:} radius of the rocket
+%	\item \textbf{$R$:} regression rate of fuel
+%	\item \textbf{$C_{profile}$:} burn surface length desired (vector of $n_t$)
+%	\end{itemize}
+		
+	\subsection{Model}
+	
+	We propose a 1D quasi-steady approximation of the combustion problem using the approximations from Section~\ref{sec:assumptions}.
+	
+
+	
+	
+	% --------------------------------------------------------------
+	%     You don't have to mess with anything below this line.
+	% --------------------------------------------------------------
+	
+% Previous attempts
+
+%	The hope is that the problem can be posed as a difference-of-convex optimization problem, and especially a mixed integer convex problem through piecewise linearization and the use of binary variables. 
+%	The pipe dream is to be able to perform this optimization in 3D with good first-order methods to accommodate for erosive burning. 
+
+
+%	\subsection{Alternative ways to think about the burn rate}
+%	We can also think about the burn rate being faster in regions that are more exposed to the flame (thinking about the dot product of the two vectors originating from the point), and then assigning a binary value on whether or not the resulting vector is within or outside of the burning surface depending on the cross product of the two vectors. However, this is more easily said than done, since both of these vector operations are non-convex. 
+%	
+		
+%		\section{Preliminary Optimization Problem}
+%	
+%	To test whether or not the method of vector translations can be solved
+%	in a mixed integer convex form, we formulate the following problem 
+%	
+%	\subsection{Parameters}
+%	\begin{itemize}
+%	\item \textbf{$n_{ctrl}$:} number of control points
+%	\item \textbf{$n_t$:} number of time steps
+%	\item \textbf{$r$:} radius of the rocket
+%	\item \textbf{$R$:} regression rate of fuel
+%	\item \textbf{$C_{profile}$:} burn surface length desired (vector of $n_t$)
+%	\end{itemize}
+%	
+%	\subsection{Variables}
+%	\begin{itemize}
+%		\item \textbf{$x_{i,t}$:} x-dimension of the control point i at time t
+%		\item \textbf{$\Delta x_{i,t}$:} vector from point $x_{i-1,t}$ to $x_{i,t}$.
+%		\item \textbf{$y_{i,t}$:} y-dimension of the control point i at time t
+%		\item \textbf{$\Delta y_{i,t}$:} vector from point $y_{i-1,t}$ to $y_{i,t}$.
+%		\item \textbf{$l_{i,t}$:} length of vector from $(x,y)_{i-1,t}$ to $(x,y)_{i,t}$  
+%		\item \textbf{$C_{t}$:} the length of the burn surface at time t
+%		\item \textbf{$n_{x_{i,t}}$:} normal vector of edge to the LHS of node i at time t
+%		\item \textbf{$n_{y_{i,t}}$:} normal vector of edge to the LHS of node i at time t
+%	\end{itemize}
+%	
+%	\subsection{Untransformed constraints}
+%	
+%	The raw formulation, without any regard for linearity or convexity
+%	is as follows:
+%	
+%	\begin{align}
+%	& \min &&\sum_{t=1}^{n_t} (C_{t} - C_{profile})^2 \\
+%	& \text{ s.t.} && r^2 \geq x_{i,t}^2 + y_{i,t}^2, \forall i, t \label{eq1} \\
+%	& && \Delta x_{i,t} = x_{i,t} - x_{i-1,t} \label{eq2}\\
+%	& && \Delta y_{i,t} = y_{i,t} - y_{i-1,t} \label{eq3} \\
+%	& && l_{i,t}^2 = \Delta x_{i,t}^2 + \Delta y_{i,t}^2 \label{eq4} \\
+%	& && C_{t} = \sum\limits_{i=1}^{n_{ctrl}} l_{i,t} \label{eq5} \\
+%	& && n_{x_{i,t}} = \frac{-\Delta y_{i,t}}{l_{i,t}} \label{eq6} \\
+%	& && n_{y_{i,t}} = \frac{\Delta x_{i,t}}{l_{i,t}} \label{eq7} \\
+%	& && x_{i,t+1} = x_{i,t} + \frac{1}{2} R (n_{x_{i,t-1}}+ n_{x_{i+1,t-1}}) \label{eq8} \\ 
+%	& && y_{i,t+1} = y_{i,t} + \frac{1}{2} R (n_{y_{i,t-1}}+ n_{y_{i+1,t-1}}) \label{eq9} \\
+%	\end{align}
+%	
+%	\section{Dealing with nonlinearities and nonconvexities}
+%	\begin{itemize}
+%		\item \textbf{Objective:} Nonlinear but convex. Can leave be. 
+%		\item \textbf{Equation~\ref{eq1}:} Nonlinear but convex. Can leave be. 
+%		\item \textbf{Equation~\ref{eq2}:} Linear. 
+%		\item \textbf{Equation~\ref{eq3}:} Linear.
+%		\item \textbf{Equation~\ref{eq4}:} Linear.
+%		\item \textbf{Equation~\ref{eq5}:} Since this is an equality it is non-convex. We also want this to be tight. So we insert two auxiliary variables, and do a piecewise linearization of the quadratic terms.
+%%	\begin{align}
+%%	l_{i,t}^2 = \Delta x_{i,t}^2 + \Delta y_{i,t}^2
+%%	\end{align}
+%		\item \textbf{Equation~\ref{eq6}:} Linear. 
+%		\item \textbf{Equation~\ref{eq7}:} Nonlinear, and convexity depends on sign of $\Delta y$. 
+%		\item \textbf{Equation~\ref{eq8}:} Nonlinear, and convexity depends on sign of $\Delta x$.
+%		\item \textbf{Equation~\ref{eq9}:} Linear. 
+%
+%	\end{itemize}
+%	
+%	\section{Modifying Constraints}
+%
+%	\subsection{Relaxing the Diameter Constraint}
+%		
+%	\subsection{Non GP compatible constraints}
+%	The three non GP compatible constraints are:
