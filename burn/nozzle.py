@@ -158,7 +158,7 @@ def test_Nozzle():
                             'k_A':     5,
                             'T_t':         1800*units('K'),
                             'P_t':         5e8*units('Pa'),
-                            'mdot':        150*units('kg/s'),
+                            # 'mdot':        150*units('kg/s'),
                             })
     m.cost = 1/sum(m.nozzlePerformance.T)
     sol = m.localsolve(verbosity=0)
@@ -171,9 +171,10 @@ if __name__ == "__main__":
     m = Rocket(1)
     m.substitutions.update({
                             'k_A':     5,
-                            'T_t':         1800*units('K'),
-                            'P_t':         5e8*units('Pa'),
-                            'mdot':        150*units('kg/s'),
+                            # 'T_t':         2000*units('K'),
+                            # 'P_t':         5e8*units('Pa'),
+                            'mdot':        1*units('kg/s'),
+                            'T':             2e3*units('N'),
                             })
-    m.cost = 1/sum(m.nozzlePerformance.T)
+    m.cost = sum(m.nozzlePerformance.T_t**2 * m.nozzlePerformance.P_t)
     sol = m.localsolve(verbosity=0)

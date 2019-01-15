@@ -116,7 +116,7 @@ class SRM(Model):
                 T_t_out[0] >= T_out + u_out[0]**2/(2*c_p),
                 # Tight([A_slack[0]*T_t_out[0]*mdot_out[0] >= q[0]*T_amb + q[0]*k_comb_p/c_p]),
                 # Tight([A_slack[0]*P_chamb[0] >= P_out[0] + 0.25*rho_out[0]*u_out[0]**2]),
-                SignomialEquality(P_chamb[0], P_out[0] + 0.25*rho_out[0]*u_out[0]**2),
+                Tight([P_chamb[0] >= P_out[0] + 0.25*rho_out[0]*u_out[0]**2]),
                 # # Burn rate
                 # Tight([r[0] >= r_c * (P_chamb[0]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*u_out[0])]),
 

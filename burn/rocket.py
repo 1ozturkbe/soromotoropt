@@ -27,6 +27,23 @@ class Rocket(Model):
     -----------------------------
     A_fuel               [m^2]   initial fuel areas
 
+    Variables of length nt
+    ----------------------
+    T                    [N]     thrust
+    c_T                  [-]     thrust coefficient
+
+    Variables of length (nsections, nt)
+    -----------------------------------
+    A_slack              [-]     slack variables
+
+    Lower Unbounded
+    ---------------
+    t_T, T, c_T
+
+    Upper Unbounded
+    ---------------
+    P_max, A_slack
+
     """
 
     def setup(self, nt, nsections):
@@ -46,6 +63,9 @@ class Rocket(Model):
             # All fuel is consumed
             self.section.A_p_out[:,-1] >= 1e-20*np.ones(nsections)*np.pi*r**2,
             A_fuel == self.section.A_p_in[:,0],
+            T == self.nozzlePerformance.T,
+            c_T == self.nozzlePerformance.c_T,
+            A_slack == self.section.A_slack,
         ]
 
         for i in range(nt-1):
@@ -67,6 +87,7 @@ class Rocket(Model):
                 self.nozzlePerformance.T_t[i] == self.section.T_t_out[nsections-1, i],
                 # Maximum chamber pressure
                 self.section.P_chamb[:, i] <= P_max,
+                self.nozzlePerformance.P_star[i] <= P_max,
             ]
             with SignomialsEnabled():
                 constraints += [
@@ -78,27 +99,27 @@ class Rocket(Model):
         return constraints, self.nozzle, self.nozzlePerformance, self.section
 
 if __name__ == "__main__":
-    nt = 1
+    nt = 2
     nsections = 5
     m = Rocket(nt, nsections)
     radius = 0.1*units('m')
     length = 2*units('m')
     m.substitutions.update({
         m.nozzle.k_A                                 :5,
-        m.t_T                                        :0.25*units('s'),
-        m.l                                          :length,
-        m.r                                          :radius,
-        m.P_max                                      :2*10.**10*units('Pa'),
+        m.t_T                                        :1.5*units('s'),
+        # m.l                                          :length,
+        # m.r                                          :radius,
+        m.P_max                                      :2*10.**8*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
-        m.nozzlePerformance.T                        :np.linspace(1e5,2e5,nt)*units('N'),
-        # m.A_fuel                                     :0.1*np.ones(nsections)*np.pi*radius**2,
+        # m.nozzlePerformance.T                        :np.linspace(2e5,2e5,nt)*units('N'),
+        m.A_fuel                                     :0.1*np.ones(nsections)*np.pi*radius**2,
     })
     for i in range(nt):
         m.substitutions.update()
 
-    m.cost = 1/(m.section.mdot_out[nsections-1,-1]*m.section.T_t_out[nsections-1,-1])*np.prod(m.section.A_slack**3)
-        #1*np.prod(m.section.A_slack**3)*np.sum(m.A_fuel) #np.prod(m.nozzlePerformance.T**-1)
-    m = Model(m.cost, Bounded(m), m.substitutions)
+    # m.cost = np.prod(m.section.A_slack**3)*np.sum(m.A_fuel)*m.l/nsections #np.prod(m.nozzlePerformance.T**-1)
+    m.cost = np.prod(m.section.A_slack**3)*np.prod(m.nozzlePerformance.T**-1)
+    # m = Model(m.cost, Bounded(m), m.substitutions)
     # m_relax = relaxed_constants(m)
     sol = m.localsolve(verbosity=4)
     post_process(sol)
