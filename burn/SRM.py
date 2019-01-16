@@ -36,7 +36,6 @@ class SRM(Model):
     A_in                              [m^2]        area in
     A_out                             [m^2]        area out
     A_avg                             [m^2]        average area
-    A_slack                           [-]          area slack variable
     A_b                               [m^2]        burn area
     A_p_in                            [m^2]        initial propellant area
     A_p_out                           [m^2]        final propellant area
@@ -55,7 +54,7 @@ class SRM(Model):
 
     Upper Unbounded
     ---------------
-    A_slack
+    radius
 
     Lower Unbounded
     ---------------
@@ -118,7 +117,7 @@ class SRM(Model):
                 # Tight([A_slack[0]*P_chamb[0] >= P_out[0] + 0.25*rho_out[0]*u_out[0]**2]),
                 Tight([P_chamb[0] >= P_out[0] + 0.25*rho_out[0]*u_out[0]**2]),
                 # # Burn rate
-                # Tight([r[0] >= r_c * (P_chamb[0]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*u_out[0])]),
+                Tight([r[0] >= r_c * (P_chamb[0]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*u_out[0])]),
 
             ]
 
@@ -145,7 +144,7 @@ class SRM(Model):
                 # Mass flows
                 Tight([mdot_out[i-1] + q[i] >= mdot_out[i]]),
                 # # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
-                # Tight([r[i] >= r_c * (P_chamb[i]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*(u_out[i]+u_out[i-1]))]),
+                Tight([r[i] >= r_c * (P_chamb[i]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*(u_out[i]+u_out[i-1]))]),
                 ]
 
         # for i in range(n):
@@ -172,14 +171,12 @@ class SRM(Model):
             constraints += [
                     # Taking averages (with a slack variable)
                     A_in*A_out == A_avg**2,
-                    A_slack >= 1,
                     # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
-                    Tight([r == r_c * (P_chamb/1e6*units('1/Pa'))** 0.35]), # * (1 + 0.5*r_k*(u_in+u_out))]),
+                    # Tight([r == r_c * (P_chamb/1e6*units('1/Pa'))** 0.35]), # * (1 + 0.5*r_k*(u_in+u_out))]),
                     # Stagnation quantities
                     Tight([T_t_out <= T_out + u_out**2/(2*c_p)]),
                     # Constraining areas
-                    Tight([A_avg + A_p_in <= A_slack*np.pi*radius**2]),
-                    Tight([(A_avg + A_p_in)*A_slack >= np.pi*radius**2]),
+                    SignomialEquality(A_avg + A_p_in, np.pi*radius**2),
                 ]
         return constraints
 
@@ -191,13 +188,14 @@ if __name__ == "__main__":
         m.k_A_max         :5,
         m.radius          :radius,
         m.l               :200*units('cm'),
-        m.A_p_in          :0.1*np.ones(n)*np.pi*radius**2,
-        m.A_p_out         :0.05*np.ones(n)*np.pi*radius**2,
-        # m.k_A         :np.ones(n),
-        # m.A_in            :0.9*np.pi*radius**2,
-        # m.A_out           :0.9*np.pi*radius**2,
+        # m.A_p_in          :0.1*np.ones(n)*np.pi*radius**2,
+        m.A_p_out         :1e-1*np.ones(n)*np.pi*radius**2,
+        m.mdot_out[-1]:   1000*units('kg/s'),
+        m.k_A         :np.ones(n),
         m.dt              :0.25*units('s'),
     })
-    m.cost = 1/(m.mdot_out[n-1]*m.T_t_out[n-1])*np.prod(m.A_slack**3)
-    m = Model(m.cost, Bounded(m), m.substitutions)
-    sol = m.localsolve(reltol = 1e-3)
+    # m.cost = 1/(m.mdot_out[n-1]*m.T_t_out[n-1]) #*
+    m.cost = np.prod(m.A_p_in)
+    # m = Model(m.cost, Bounded(m), m.substitutions)
+    # m_relax = relaxed_constants(m)
+    sol = m.localsolve(reltol = 1e-3, verbosity=4)
