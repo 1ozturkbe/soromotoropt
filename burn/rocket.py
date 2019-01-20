@@ -30,16 +30,19 @@ class Rocket(Model):
     Variables of length nt
     ----------------------
     T_target             [N]     thrust
-    T_slack              [-]     thrust slack
     c_T                  [-]     thrust coefficient
+
+    Variables of length (nsections, nt)
+    -----------------------------------
+    s                    [-]     slack
 
     Lower Unbounded
     ---------------
-    t_T
+    t_T, T_target
 
     Upper Unbounded
     ---------------
-    P_max, T_slack
+    P_max, s
 
     """
 
@@ -51,8 +54,9 @@ class Rocket(Model):
         with Vectorize(nt):
             self.nozzlePerformance = NozzlePerformance(self.nozzle)
             self.section = SRM(nsections)
-
         constraints = [
+            # Limiting slacks
+            s == self.section.s,
             # Limiting nozzle size to cross-sectional area
             # self.nozzle.A_e <= np.pi*r**2,
             # Equal time segments
@@ -60,9 +64,7 @@ class Rocket(Model):
             # All fuel is consumed
             self.section.A_p_out[:,-1] >= 1e-20*np.ones(nsections)*np.pi*r**2,
             A_fuel == self.section.A_p_in[:,0],
-            T_target*T_slack >= self.nozzlePerformance.T,
-            self.nozzlePerformance.T*T_slack >= T_target,
-            T_slack >= 1,
+            T_target == self.nozzlePerformance.T,
             c_T == self.nozzlePerformance.c_T,
         ]
 
@@ -103,21 +105,19 @@ if __name__ == "__main__":
     radius = 0.1*units('m')
     length = 2*units('m')
     m.substitutions.update({
-        m.nozzle.k_A                                 :5,
         m.t_T                                        :0.25*nt*units('s'),
         m.l                                          :length,
         m.r                                          :radius,
         m.P_max                                      :2*10.**10*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
-        m.section.k_A                                :1*np.ones((nsections, nt)), #Temporarily
+        # m.section.k_A                                :1*np.ones((nsections, nt)), #Temporarily
         m.nozzlePerformance.T                        :np.linspace(1.5e3,2e3,nt)*units('N'),
-        # m.A_fuel                                     :0.5*np.ones(nsections)*np.pi*radius**2,
     })
 
-    m.cost = np.prod(m.T_slack)*np.sum(m.section.A_p_in)
+    m.cost = np.prod(m.s)*np.sum(m.section.A_p_in)
     # m.cost = np.prod(m.section.A_slack**3)*np.prod(m.nozzlePerformance.T**-1)
     # m.cost = np.prod(m.nozzlePerformance.T**-1)
     # m = Model(m.cost, Bounded(m), m.substitutions)
-    m_relax = relaxed_constants(m)
-    sol = m.localsolve(verbosity=4, reltol = 1e-2)
+    m_relax = relaxed_constants(m,include_only=[m.t_T, m.l, m.r, m.P_max])
+    sol = m_relax.localsolve(verbosity=4, reltol = 1e-2)
     post_process(sol)
