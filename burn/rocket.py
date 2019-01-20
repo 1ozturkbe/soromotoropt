@@ -29,16 +29,17 @@ class Rocket(Model):
 
     Variables of length nt
     ----------------------
-    T                    [N]     thrust
+    T_target             [N]     thrust
+    T_slack              [-]     thrust slack
     c_T                  [-]     thrust coefficient
 
     Lower Unbounded
     ---------------
-    t_T, T, c_T
+    t_T
 
     Upper Unbounded
     ---------------
-    P_max
+    P_max, T_slack
 
     """
 
@@ -59,7 +60,9 @@ class Rocket(Model):
             # All fuel is consumed
             self.section.A_p_out[:,-1] >= 1e-20*np.ones(nsections)*np.pi*r**2,
             A_fuel == self.section.A_p_in[:,0],
-            T == self.nozzlePerformance.T,
+            T_target*T_slack >= self.nozzlePerformance.T,
+            self.nozzlePerformance.T*T_slack >= T_target,
+            T_slack >= 1,
             c_T == self.nozzlePerformance.c_T,
         ]
 
@@ -87,15 +90,15 @@ class Rocket(Model):
             with SignomialsEnabled():
                 constraints += [
                 # Matching nozzle stagnation pressure
-                self.nozzlePerformance.P_t[i] <= self.section.P_out[nsections-1, i] +
-                                0.5*self.section.rho_out[nsections-1, i]*self.section.u_out[nsections-1, i]**2,
+                Tight([self.nozzlePerformance.P_t[i] <= self.section.P_out[nsections-1, i] +
+                                0.5*self.section.rho_out[nsections-1, i]*self.section.u_out[nsections-1, i]**2], printwarning=True),
                 ]
 
         return constraints, self.nozzle, self.nozzlePerformance, self.section
 
 if __name__ == "__main__":
     nt = 2
-    nsections = 10
+    nsections = 5
     m = Rocket(nt, nsections)
     radius = 0.1*units('m')
     length = 2*units('m')
@@ -111,10 +114,10 @@ if __name__ == "__main__":
         # m.A_fuel                                     :0.5*np.ones(nsections)*np.pi*radius**2,
     })
 
-    m.cost = np.sum(m.section.A_p_in)
+    m.cost = np.prod(m.T_slack)*np.sum(m.section.A_p_in)
     # m.cost = np.prod(m.section.A_slack**3)*np.prod(m.nozzlePerformance.T**-1)
     # m.cost = np.prod(m.nozzlePerformance.T**-1)
     # m = Model(m.cost, Bounded(m), m.substitutions)
-    # m_relax = relaxed_constants(m)
+    m_relax = relaxed_constants(m)
     sol = m.localsolve(verbosity=4, reltol = 1e-2)
     post_process(sol)
