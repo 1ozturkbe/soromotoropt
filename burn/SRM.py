@@ -7,7 +7,7 @@ from relaxed_constants import relaxed_constants, post_process
 
 import numpy as np
 
-Tight.reltol = 1e-3
+Tight.reltol = 1e-2
 
 
 class SRM(Model):
@@ -47,6 +47,7 @@ class SRM(Model):
     P_chamb                           [Pa]         section static pressure
     V_chamb                           [m^3]        section volume
     T_t_out                           [K]          stagnation temperature out
+    s                                 [-]          slack variable
     T_out                             [K]          static temperature out
     u_out                             [m/s]        velocity out
     r                                 [mm/s]       burn rate
@@ -54,7 +55,7 @@ class SRM(Model):
 
     Upper Unbounded
     ---------------
-    radius
+    radius, s
 
     Lower Unbounded
     ---------------
@@ -112,12 +113,14 @@ class SRM(Model):
                 # Inlet temperatures
                 T_t_out[0]*mdot_out[0] <= q[0]*T_amb + q[0]*k_comb_p/c_p,
                 T_t_out >= T_amb,
-                T_t_out[0] >= T_out + u_out[0]**2/(2*c_p),
+                s >= 1.,
+                s[0]*T_t_out[0] >= T_out + u_out[0]**2/(2*c_p),
+                T_t_out[0] <= s[0]*(T_out + u_out[0]**2/(2*c_p)),
                 # Tight([A_slack[0]*T_t_out[0]*mdot_out[0] >= q[0]*T_amb + q[0]*k_comb_p/c_p]),
                 # Tight([A_slack[0]*P_chamb[0] >= P_out[0] + 0.25*rho_out[0]*u_out[0]**2]),
-                Tight([P_chamb[0] >= P_out[0] + 0.25*rho_out[0]*u_out[0]**2]),
+                Tight([P_chamb[0] >= P_out[0] + 0.25*rho_out[0]*u_out[0]**2], printwarning=True),
                 # # Burn rate
-                Tight([r[0] >= r_c * (P_chamb[0]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*u_out[0])]),
+                Tight([r[0] >= r_c * (P_chamb[0]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*u_out[0])], printwarning=True),
 
             ]
 
@@ -139,7 +142,8 @@ class SRM(Model):
                 dP[i] + rho_out[i-1]*u_out[i-1]**2 >= q[i]*u_out[i]/V_chamb[i]*l_sec +
                     rho_out[i-1]*u_out[i-1]*u_out[i],
                 # Temperatures
-                Tight([T_t_out[i]*mdot_out[i] <= mdot_out[i-1]*T_t_out[i-1] + q[i]*T_amb + q[i]*k_comb_p/c_p], printwarning = True), #
+                Tight([s[i]*T_t_out[i]*mdot_out[i] >= mdot_out[i-1]*T_t_out[i-1] + q[i]*T_amb + q[i]*k_comb_p/c_p], printwarning = True), #
+                Tight([T_t_out[i]*mdot_out[i] <= s[i]*(mdot_out[i-1]*T_t_out[i-1] + q[i]*T_amb + q[i]*k_comb_p/c_p)], printwarning = True), #
                 # Mass flows
                 Tight([mdot_out[i-1] + q[i] >= mdot_out[i]], printwarning = True),
                 # # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
@@ -170,10 +174,9 @@ class SRM(Model):
             constraints += [
                     # Taking averages (with a slack variable)
                     A_in*A_out == A_avg**2,
-                    # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
-                    # Tight([r == r_c * (P_chamb/1e6*units('1/Pa'))** 0.35]), # * (1 + 0.5*r_k*(u_in+u_out))]),
                     # Stagnation quantities
-                    Tight([T_t_out <= T_out + u_out**2/(2*c_p)], printwarning = True),
+                    Tight([T_t_out <= s*(T_out + u_out**2/(2*c_p))], printwarning = True),
+                    Tight([s*T_t_out >= T_out + u_out**2/(2*c_p)], printwarning = True),
                     # Constraining areas
                     SignomialEquality(A_avg + A_p_in, np.pi*radius**2),
                 ]
@@ -188,13 +191,12 @@ if __name__ == "__main__":
         m.radius          :radius,
         m.l               :200*units('cm'),
         # m.A_p_in         :0.1*np.ones(n)*np.pi*radius**2,
-        m.A_p_out         :1e-1*np.ones(n)*np.pi*radius**2,
-        m.mdot_out[-1]    :1000*units('kg/s'),
-        m.k_A             :np.ones(n),
+        m.A_p_out         :1e-20*np.ones(n)*np.pi*radius**2,
+        m.mdot_out[-1]    :50*units('kg/s'),
+        # m.k_A             :np.ones(n),
         m.dt              :0.25*units('s'),
     })
-    # m.cost = 1/(m.mdot_out[n-1]*m.T_t_out[n-1]) #*
-    m.cost = np.prod(m.A_p_in)
+    m.cost = np.prod(m.s**4)*np.sum(m.A_p_in)
     # m = Model(m.cost, Bounded(m), m.substitutions)
     # m_relax = relaxed_constants(m)
     sol = m.localsolve(reltol = 1e-3, verbosity=4)
