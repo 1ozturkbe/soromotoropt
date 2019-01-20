@@ -25,7 +25,7 @@ class SRM(Model):
     R                    287          [J/kg/K]     gas constant of air
     T_amb                273          [K]          ambient temperature
     r_c                  5.606        [mm/s]       burn rate coefficient
-    r_k                  0.05        [1/(m/s)]    erosive burn rate coefficient
+    r_k                  0.05         [1/(m/s)]    erosive burn rate coefficient
     rho_p                1700         [kg/m^3]     propellant density
     k_comb_p             1.23e6       [J/kg]       propellant specific heat of combustion
     c_p                  1000         [J/kg/K]     specific heat of combustion products
@@ -130,9 +130,8 @@ class SRM(Model):
                 P_out[i] + dP[i] <= P_out[i-1],
                 # Chamber pressure
                 P_chamb[i]**2 == P_out[i-1]*P_out[i],
-                # Constraining pressures
-                P_chamb[i] <= P_chamb[i-1],
             ]
+
             with SignomialsEnabled():
                 constraints += [
                 # Flow acceleration (conservation of momentum)
@@ -140,11 +139,11 @@ class SRM(Model):
                 dP[i] + rho_out[i-1]*u_out[i-1]**2 >= q[i]*u_out[i]/V_chamb[i]*l_sec +
                     rho_out[i-1]*u_out[i-1]*u_out[i],
                 # Temperatures
-                Tight([T_t_out[i]*mdot_out[i] <= mdot_out[i-1]*T_t_out[i-1] + q[i]*T_amb + q[i]*k_comb_p/c_p]), #
+                Tight([T_t_out[i]*mdot_out[i] <= mdot_out[i-1]*T_t_out[i-1] + q[i]*T_amb + q[i]*k_comb_p/c_p], printwarning = True), #
                 # Mass flows
-                Tight([mdot_out[i-1] + q[i] >= mdot_out[i]]),
+                Tight([mdot_out[i-1] + q[i] >= mdot_out[i]], printwarning = True),
                 # # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
-                Tight([r[i] >= r_c * (P_chamb[i]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*(u_out[i]+u_out[i-1]))]),
+                Tight([r[i] >= r_c * (P_chamb[i]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*(u_out[i]+u_out[i-1]))], printwarning = True),
                 ]
 
         # for i in range(n):
@@ -174,7 +173,7 @@ class SRM(Model):
                     # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
                     # Tight([r == r_c * (P_chamb/1e6*units('1/Pa'))** 0.35]), # * (1 + 0.5*r_k*(u_in+u_out))]),
                     # Stagnation quantities
-                    Tight([T_t_out <= T_out + u_out**2/(2*c_p)]),
+                    Tight([T_t_out <= T_out + u_out**2/(2*c_p)], printwarning = True),
                     # Constraining areas
                     SignomialEquality(A_avg + A_p_in, np.pi*radius**2),
                 ]
@@ -188,10 +187,10 @@ if __name__ == "__main__":
         m.k_A_max         :5,
         m.radius          :radius,
         m.l               :200*units('cm'),
-        # m.A_p_in          :0.1*np.ones(n)*np.pi*radius**2,
+        # m.A_p_in         :0.1*np.ones(n)*np.pi*radius**2,
         m.A_p_out         :1e-1*np.ones(n)*np.pi*radius**2,
-        m.mdot_out[-1]:   1000*units('kg/s'),
-        m.k_A         :np.ones(n),
+        m.mdot_out[-1]    :1000*units('kg/s'),
+        m.k_A             :np.ones(n),
         m.dt              :0.25*units('s'),
     })
     # m.cost = 1/(m.mdot_out[n-1]*m.T_t_out[n-1]) #*
