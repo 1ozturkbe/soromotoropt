@@ -106,8 +106,8 @@ if __name__ == "__main__":
     m.substitutions.update({
         m.nozzle.k_A                                 :10,
         m.t_T                                        :1*nt*units('s'),
-        m.l                                          :length,
-        m.r                                          :radius,
+        # m.l                                          :length,
+        # m.r                                          :radius,
         m.P_max                                      :2*10.**7*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
         # m.section.k_A                                :1*np.ones((nsections, nt)), #Temporarily
@@ -115,7 +115,7 @@ if __name__ == "__main__":
         m.s                                          :np.ones((nsections, nt)),
     })
 
-    m.cost = np.sum(m.section.A_p_in**2)*np.sum(m.section.mdot_out**-1)*np.sum(m.section.T_t_out**-1.5)
+    m.cost = np.sum(m.section.A_p_in**2)*m.l
     # m.cost = np.prod(m.section.A_slack**3)*np.prod(m.nozzlePerformance.T**-1)
     # m.cost = np.prod(m.nozzlePerformance.T**-1)
     # m = Model(m.cost, Bounded(m), m.substitutions)

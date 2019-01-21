@@ -21,7 +21,7 @@ class SRM(Model):
     l_sec                             [m]          section length
     dt                                [s]          time step
     l_b_max              3            [-]          maximum burn length factor
-    k_A_max              5            [-]          maximum area ratio
+    k_A_max              1.5          [-]          maximum area ratio
     R                    287          [J/kg/K]     gas constant of air
     T_amb                273          [K]          ambient temperature
     r_c                  5.606        [mm/s]       burn rate coefficient
