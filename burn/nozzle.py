@@ -68,11 +68,11 @@ class NozzlePerformance(Model):
 
     Upper Unbounded
     ---------------
-    rho_e, mdot, rho_star, P_e, M_e, P_star, c_star, P_t
+    rho_e, mdot, rho_star, P_e, M_e, P_star, P_t
 
     Lower Unbounded
     ---------------
-    T_e, a_e, c_T
+    T_e, a_e
 
     LaTex Strings
     -------------
@@ -104,6 +104,7 @@ class NozzlePerformance(Model):
             c_star == P_t*nozzle.A_star/mdot,
             # Thrust coefficient
             T == mdot*c_star*c_T,
+            c_T >= 1,
             # Universal gas law
             P_e == rho_e*R*T_e,
             P_star == rho_star*R*T_star,
@@ -171,10 +172,13 @@ if __name__ == "__main__":
     m = Rocket(1)
     m.substitutions.update({
                             'k_A':     5,
-                            # 'T_t':         2000*units('K'),
-                            # 'P_t':         5e8*units('Pa'),
+                            'T_t':         2000*units('K'),
+                            'P_t':         5e8*units('Pa'),
                             'mdot':        1*units('kg/s'),
-                            'T':             2e3*units('N'),
+                            # 'T':             2e3*units('N'),
                             })
-    m.cost = sum(m.nozzlePerformance.T_t**2 * m.nozzlePerformance.P_t)
-    sol = m.localsolve(verbosity=0)
+    m.cost = sum(m.nozzlePerformance.T**-1)
+    m_relax = relaxed_constants(m)
+    sol = m_relax.localsolve(verbosity=0)
+    post_process(sol)
+    print sol.table()
