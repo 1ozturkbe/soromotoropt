@@ -6,7 +6,7 @@ from gpkit.constraints.tight import Tight
 from nozzle import Nozzle, NozzlePerformance
 from SRM import SRM
 
-from relaxed_constants import relaxed_constants, post_process
+from relaxations import relaxed_constants, post_process
 
 import numpy as np
 
@@ -82,8 +82,8 @@ class Rocket(Model):
                 self.section.radius[i] == r,
                 self.section.l[i] == l,
                 # Matching nozzle and section conditions
-                self.nozzlePerformance.mdot[i] == self.section.mdot_out[nsections-1, i],
-                self.nozzlePerformance.T_t[i] == self.section.T_t_out[nsections-1, i],
+                self.nozzlePerformance.mdot[i] == self.section.mdot_out[i],
+                self.nozzlePerformance.T_t[i] == self.section.T_t_out[i],
                 # Maximum chamber pressure
                 self.section.P_chamb[:, i] <= P_max,
                 self.nozzlePerformance.P_star[i] <= P_max,
@@ -91,14 +91,14 @@ class Rocket(Model):
             with SignomialsEnabled():
                 constraints += [
                 # Matching nozzle stagnation pressure
-                Tight([self.nozzlePerformance.P_t[i] <= self.section.P_out[nsections-1, i] +
-                                0.5*self.section.rho_out[nsections-1, i]*self.section.u_out[nsections-1, i]**2], printwarning=True),
+                Tight([self.nozzlePerformance.P_t[i] <= self.section.P_out[i] +
+                                0.5*self.section.rho_out[i]*self.section.u_out[i]**2], name='PtNozzle', printwarning=True),
                 ]
 
         return constraints, self.nozzle, self.nozzlePerformance, self.section
 
 if __name__ == "__main__":
-    nt = 5
+    nt = 4
     nsections = 6
     m = Rocket(nt, nsections)
     radius = 0.2*units('m')
@@ -107,19 +107,21 @@ if __name__ == "__main__":
         m.nozzle.k_A                                 :10,
         m.t_T                                        :1*nt*units('s'),
         # m.l                                          :length,
-        # m.r                                          :radius,
-        m.P_max                                      :2*10.**7*units('Pa'),
+        m.r                                          :radius,
+        m.P_max                                      :8*10.**7*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
         # m.section.k_A                                :1*np.ones((nsections, nt)), #Temporarily
         m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
+        # m.T_target                                   :np.array([150, 200, 100, 150, 100])*units('kN'),
         m.s                                          :np.ones((nsections, nt)),
     })
 
-    m.cost = np.sum(m.section.A_p_in**2)*m.l
+    m.cost = np.sum(m.A_fuel)*m.l
+    # m.cost = np.sum(m.A_fuel)*m.l
     # m.cost = np.prod(m.section.A_slack**3)*np.prod(m.nozzlePerformance.T**-1)
     # m.cost = np.prod(m.nozzlePerformance.T**-1)
     # m = Model(m.cost, Bounded(m), m.substitutions)
     # m_relax = relaxed_constants(m,include_only=[m.t_T, m.l, m.r, m.P_max, m.T_target])
-    m_relax = relaxed_constants(m, exclude=[m.r])
-    sol = m_relax.localsolve(verbosity=4, reltol = 1e-2)
+    m_relax = relaxed_constants(m)
+    sol = m_relax.localsolve(verbosity=4, reltol = 1e-3)
     post_process(sol)

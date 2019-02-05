@@ -1,6 +1,10 @@
 from gpkit.constraints.relax import ConstantsRelaxed
 from gpkit import Model
 
+from gpkit.nomials import PosynomialInequality, SignomialInequality
+from gpkit.constraints.tight import Tight
+
+
 """
 Methods to precondition an SP so that it solves with a relaxed constants algorithm
 and postcondition an SP to ensure all relax values are 1
@@ -46,4 +50,39 @@ def post_process(sol):
             print sol.program.gps[i].result.table(varkeys)
             if i == len(sol.program.gps) - 1:
                 print  "WARNING: The final GP iteration had relaxation values greater than 1"
+
+def compute_constr_tightness(m,sol):
+    """
+    :param m: model
+    :param sol: solution
+    :return: dict of inequality constraints and tightness
+    """
+    variables = sol['variables']
+    tightnessDict = {}
+    count = 0
+    for constraint in m.flat(constraintsets=True):
+        if isinstance(constraint, Tight):
+            print constraint.name
+            if constraint.name:
+                name = constraint.name
+            for i in constraint.flat(constraintsets = False):
+                if isinstance(i, PosynomialInequality):
+                    leftsubbed = i.left.sub(variables).value
+                    rightsubbed = i.right.sub(variables).value
+                    rel_diff = abs(1 - leftsubbed/rightsubbed)
+                    tightnessDict[count] = [rel_diff, i]
+                    count +=1
+                elif isinstance(i, SignomialInequality):
+                    siglt0, = i.unsubbed
+                    posy, negy = siglt0.posy_negy()
+                    posy = posy.sub(variables).value
+                    negy = negy.sub(variables).value
+                    rel_diff = abs(1 - posy/negy)
+                    tightnessDict[count] = [rel_diff, i]
+        count += 1
+    return tightnessDict
+
+
+
+
 
