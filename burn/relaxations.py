@@ -56,21 +56,19 @@ def compute_constr_tightness(m,sol):
     :param m: model
     :param sol: solution
     :return: dict of inequality constraints and tightness
+    Note: only works if all tight constraints have names
     """
     variables = sol['variables']
     tightnessDict = {}
     count = 0
     for constraint in m.flat(constraintsets=True):
         if isinstance(constraint, Tight):
-            print constraint.name
-            if constraint.name:
-                name = constraint.name
             for i in constraint.flat(constraintsets = False):
                 if isinstance(i, PosynomialInequality):
                     leftsubbed = i.left.sub(variables).value
                     rightsubbed = i.right.sub(variables).value
                     rel_diff = abs(1 - leftsubbed/rightsubbed)
-                    tightnessDict[count] = [rel_diff, i]
+                    tightnessDict[(constraint.name,count)] = [rel_diff, i]
                     count +=1
                 elif isinstance(i, SignomialInequality):
                     siglt0, = i.unsubbed
@@ -78,9 +76,26 @@ def compute_constr_tightness(m,sol):
                     posy = posy.sub(variables).value
                     negy = negy.sub(variables).value
                     rel_diff = abs(1 - posy/negy)
-                    tightnessDict[count] = [rel_diff, i]
+                    tightnessDict[(constraint.name,count)] = [rel_diff, i]
         count += 1
     return tightnessDict
+
+def group_constr_tightness(tightnessDict):
+    strkeys = list(set([key[0] for key in tightnessDict.keys()]))
+    groupedDict = {}
+    for key, value in sorted(tightnessDict.iteritems()):
+        if key[0] in groupedDict.keys():
+            groupedDict[key[0]] += [value]
+        else:
+            groupedDict[key[0]] = [value]
+
+# def map_relaxations(groupedDict, nx, nt):
+#     strkeys = groupedDict.keys()
+#     lens = [len(groupedDict[i]) for i in strkeys]
+#     for i in strkeys:
+#
+#         groupedDict[i] =
+
 
 
 
