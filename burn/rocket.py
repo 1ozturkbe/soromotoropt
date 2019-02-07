@@ -10,7 +10,7 @@ from relaxations import relaxed_constants, post_process
 
 import numpy as np
 
-Tight.reltol = 1e-2
+Tight.reltol = 2e-2
 
 class Rocket(Model):
     """
@@ -55,7 +55,6 @@ class Rocket(Model):
             self.nozzlePerformance = NozzlePerformance(self.nozzle)
             self.section = SRM(nsections)
         constraints = [
-            # Limiting slacks
             # Limiting nozzle size to cross-sectional area
             # self.nozzle.A_e <= np.pi*r**2,
             # Equal time segments
@@ -107,16 +106,17 @@ if __name__ == "__main__":
         m.nozzle.k_A                                 :10,
         m.t_T                                        :1*nt*units('s'),
         # m.l                                          :length,
-        m.r                                          :radius,
+        # m.r                                          :radius,
         m.P_max                                      :8*10.**7*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
         # m.section.k_A                                :1*np.ones((nsections, nt)), #Temporarily
-        m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
-        # m.T_target                                   :np.array([150, 200, 100, 150, 100])*units('kN'),
+        # m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
+        m.T_target                                   :np.array([150, 200, 100, 100])*units('kN'),
         m.s                                          :np.ones((nsections, nt)),
     })
 
-    m.cost = np.sum(m.A_fuel)*m.l
+    # m.cost = np.prod(m.section.slack)*np.sum(m.A_fuel)*m.l#*(100+m.nozzle.k_A)
+    m.cost = np.sum(m.A_fuel)*m.l*m.r**5#*(100+m.nozzle.k_A)
     # m.cost = np.sum(m.A_fuel)*m.l
     # m.cost = np.prod(m.section.A_slack**3)*np.prod(m.nozzlePerformance.T**-1)
     # m.cost = np.prod(m.nozzlePerformance.T**-1)
