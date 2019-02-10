@@ -9,6 +9,23 @@
 \usepackage{amsmath,amsthm,amssymb}
 \usepackage{comment}
 \usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{tikz-3dplot}
+\usetikzlibrary{shapes.geometric}
+
+\newcommand{\tstar}[5]{% inner radius, outer radius, tips, rot angle, options
+\pgfmathsetmacro{\starangle}{360/#3}
+\draw[#5] (#4:#1)
+\foreach \x in {1,...,#3}
+{ -- (#4+\x*\starangle-\starangle/2:#2) -- (#4+\x*\starangle:#1)
+}
+-- cycle;
+}
+\newcommand{\ngram}[4]{% outer radius, tips, rot angle, options
+\pgfmathsetmacro{\starangle}{360/#2}
+\pgfmathsetmacro{\innerradius}{#1*sin(90-\starangle)/sin(90+\starangle/2)}
+\tstar{\innerradius}{#1}{#2}{#3}{#4}
+}
 
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -42,5 +59,9 @@
 \input{motivation}
 
 \input{approach}
-	
+
+\input{math}
+
+\input{model}
+
 \end{document}
