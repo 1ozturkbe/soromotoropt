@@ -14,7 +14,7 @@ optimization framework.
 We assume that the rocket is divided into $n$ equal sections
 
 \begin{equation}
-    n \times \mathrm{l_{sec}} = \mathrm{l}
+    \rm{n} \times \mathrm{l_{\rm{sec}}} = \mathrm{l}
 \end{equation}
 
 
@@ -24,8 +24,8 @@ We assume that the rocket is divided into $n$ equal sections
 We limit the expansion ratio within a single section
 
 \begin{align}
-    k_A &\leq k_{A,max} \\
-    k_A &\geq \frac{1}{k_{A,max}}
+    k_A &\leq k_{A,\rm{max}} \\
+    k_A &\geq \frac{1}{k_{A,\rm{max}}}
 \end{align}
 
 \subsubsection{Exit quantities}
@@ -34,12 +34,12 @@ To be able to couple a rocket nozzle to the SRM model,
 we need to define the SRM exit quantities.
 
 \begin{align}
-    u_{out} &= u_{n-1} \\
-    T_{t_{out}} &= T_{t_{n-1}} \\
-    T_{out} &= T_{n-1} \\
-    \dot{m}_{out} &= \dot{m}_{n-1} \\
-    \rho_{out} &= \rho_{n-1} \\
-    P_{out} &= P_{n-1}
+    u_{\rm{out}} &= u_{\rm{n}-1} \\
+    T_{t,\rm{out}} &= T_{t,\rm{n}-1} \\
+    T_{\rm{out}} &= T_{\rm{n}-1} \\
+    \dot{m}_{\rm{out}} &= \dot{m}_{\rm{n}-1} \\
+    \rho_{\rm{out}} &= \rho_{\rm{n}-1} \\
+    P_{\rm{out}} &= P_{\rm{n}-1}
 \end{align}
 
 \subsubsection{First cell constraints}
@@ -54,17 +54,23 @@ the first section is simply the mass generated in that section.
 
 \begin{align}
     \dot{m}_0 &= q_0 &\mathrm{[Mass Cons.]} \\
-    \Delta P_0 &= q_0 u_0 V_{chamb,0} l_{sec} &\mathrm{[Mom. Cons.]}\\
-    T_{t, 0} \dot{m}_0 &\leq q_0 (T_{amb} + k_{comb,p} c_{p}) &\mathrm{Energy Cons.}
+    P_{end}*A_{\rm{in}, 0} &\geq P_0 A_{\rm{out}, 0} + q_0 u_0 V_{\rm{chamb},0} l_{\rm{sec}} A_{\rm{out},0} &\mathrm{[Mom. Cons.]} \\
+    T_{t, 0} \dot{m}_0 &\leq q_0 (T_{amb} + k_{comb,p} c_{p}) &\mathrm{[Energy Cons.]}
 \end{align}
 
 \subsubsection{In-cell constraints}
 
-The chamber pressure $P_{chamb \rm{i}}$ is defined as the geometric average of
+\begin{align}
+V_{\rm{chamb}, \rm{i}} &= A_{\rm{avg}, \rm{i}} l_{\rm{sec}, \rm{i}} \\
+\frac{A_{\rm{in}, \rm{i}}}{A_{rm{out}, \rm{i}}} &= k_{A, \rm{i}} \\
+
+\end{align}
+
+The chamber pressure $P_{\rm{chamb}, \rm{i}}$ is defined as the geometric average of
 the inlet and outlet static pressures.
 
 \begin{equation}
-    P_{chamb, \rm{i}}^2 = P_{\rm{i}-1} P_{\rm{i}}
+    P_{\rm{chamb}, \rm{i}}^2 = P_{\rm{i}-1} P_{\rm{i}}
 \end{equation}
 
 The burn rate in a given cell $\rm{i}$ is defined by the following inequality,
@@ -85,20 +91,40 @@ $5.6~\rm{mm/s}$, $10^{6}~\rm{Pa}$, and $0.05~\rm{1/(m/s)}$ respectively.
 The inlet area of one cell is the outlet area of another
 
 \begin{equation}
-    A_{in, \rm{i}} = A_{out, \rm{i}}
+    A_{in, \rm{i}} = A_{out, \rm{i}-1}
 \end{equation}
 
 The static pressure in previous cell $\rm{i}-1$ must be strictly higher
 than in cell $\rm{i}$, since the flow must be toward the nozzle.
 
 \begin{equation}
-    P_{\rm{i}} + \Delta P_{\rm{i}} \leq P_{\rm{i}-1}
+    P_{\rm{i}-1} \geq P_{\rm{i}}
 \end{equation}
 
 The different conservation laws are as follows:
 
 \begin{align}
+    \dot{m}_{\rm{i}-1} + q_{\rm{i}}
+    &\geq
+    \dot{m}_{\rm{i}} &\rm{[Mass Cons.]}\\
+    P_{\rm{i}-1} A_{\rm{in}, \rm{i}} + \rho_{\rm{i}-1} u_{\rm{i}-1}^2 A_{\rm{in},\rm{i}}
+    &\geq
+    P_{\rm{i}} A_{\rm{out}, \rm{i}} + q_{\rm{i}} u_{\rm{i}} V_{\rm{chamb},\rm{i}} l_{\rm{sec}} A_{\rm{out},\rm{i}}
+    + \rho_{\rm{i}-1} u_{\rm{i}-1} u_{\rm{i}} A_{\rm{out}, \rm{i}}&[\mathrm{Mom. Cons.}] \\
+    \dot{m}_{\rm{i}-1} T_{t, \rm{i}-1} + q_{\rm{i}}\Big(T_{\rm{amb}} + \frac{k_{\rm{comb}}}{c_{\rm{p}}}\Big)
+    &\geq
+    \dot{m_{\rm{i}}} T_{t, \rm{i}} &\rm{[Energy Cons.]} \\
 \end{align}
+
+\subsubsection{Nozzle constraints}
+
+The nozzle chokes the flow, and given some ambient pressure,
+produces thrust through a combination of mass ejection and
+pressure differential
+
+\begin{equation}
+
+\begin{equation}
 
 	% --------------------------------------------------------------
 	%     You don't have to mess with anything below this line.
