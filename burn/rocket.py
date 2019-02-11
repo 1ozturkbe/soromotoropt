@@ -110,18 +110,18 @@ if __name__ == "__main__":
         m.P_max                                      :8*10.**7*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
         # m.section.k_A                                :1*np.ones((nsections, nt)), #Temporarily
-        # m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
+        # m.T_target                                   :np.linspace(1.5e5,2.0e5,nt)*units('N'),
         m.T_target                                   :np.array([150, 200, 100, 100])*units('kN'),
         m.s                                          :np.ones((nsections, nt)),
     })
 
     # m.cost = np.prod(m.section.slack)*np.sum(m.A_fuel)*m.l#*(100+m.nozzle.k_A)
-    m.cost = np.sum(m.A_fuel)*m.l*m.r**5#*(100+m.nozzle.k_A)
+    m.cost = np.sum(m.A_fuel)*m.l*m.r**4#*(100+m.nozzle.k_A)
     # m.cost = np.sum(m.A_fuel)*m.l
     # m.cost = np.prod(m.section.A_slack**3)*np.prod(m.nozzlePerformance.T**-1)
     # m.cost = np.prod(m.nozzlePerformance.T**-1)
     # m = Model(m.cost, Bounded(m), m.substitutions)
     # m_relax = relaxed_constants(m,include_only=[m.t_T, m.l, m.r, m.P_max, m.T_target])
     m_relax = relaxed_constants(m)
-    sol = m_relax.localsolve(verbosity=4, reltol = 1e-3)
+    sol = m_relax.localsolve(verbosity=4, reltol = 1e-2)
     post_process(sol)

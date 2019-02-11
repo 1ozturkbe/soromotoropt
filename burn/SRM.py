@@ -20,6 +20,7 @@ class SRM(Model):
     l                                 [m]          total length
     l_sec                             [m]          section length
     dt                                [s]          time step
+    P_end                             [Pa]         endcap pressure
     mdot_out                          [kg/s]       mass flow rate out
     T_t_out                           [K]          stagnation temperature out
     T_out                             [K]          static temperature out
@@ -50,7 +51,6 @@ class SRM(Model):
     mdot                              [kg/s]       mass flow rate
     rho                               [kg/m^3]     density
     P                                 [Pa]         static pressure
-    dP                                [Pa]         pressure increase
     P_chamb                           [Pa]         section static pressure
     V_chamb                           [m^3]        section volume
     T_t                               [K]          stagnation temperature
@@ -89,7 +89,6 @@ class SRM(Model):
     mdot                     \dot{m}
     rho_out                  \rho_{\mathrm{out}}
     P_out                    P_{\mathrm{out}}
-    dP                       \delta P
     P_chamb                  P_{\mathrm{chamb}}
     V_chamb                  V_{\mathrm{chamb}}
     T_t_out                  T_{t_{\mathrm{out}}}
@@ -105,11 +104,10 @@ class SRM(Model):
                     # Bounding area ratio
                     k_A[:] >= 1/k_A_max,
                     k_A[:] <= k_A_max,
-                    # Flow acceleration (conservation of momentum)
-                    # Note: assumes constant rate of burn through the chamber
-                    dP[0] == q[0]*u[0]/V_chamb[0]*l_sec,
                     # Mass flow
-                    q[0] == mdot[0],
+                    q[0] == mdot[0], #massCons
+                    # Momentum cons
+                    Tight([P_end*A_in[0] >= P[0]*A_out[0] + q[0]*u[0]/V_chamb[0]*l_sec*A_out[0]], name='momCons', printwarning=True),
                     # Setting section lengths,
                     n*l_sec == l,
                     # Exit quantities
@@ -125,7 +123,8 @@ class SRM(Model):
                 # Inlet temperatures
                 Tight([T_t[0]*mdot[0] <= q[0]*T_amb + q[0]*k_comb_p/c_p], name='energyCons' , printwarning=True),
                 T_t >= T_amb,
-                Tight([P_chamb[0] >= P[0] + 0.25*rho[0]*u[0]**2], name='Pchamb', printwarning=True),
+                # Chamber pressure
+                P_chamb[0]**2 == P_end*P[0],
                 # # Burn rate
                 Tight([r[0] >= r_c * (P_chamb[0]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*u[0])], name='burnRate', printwarning=True),
 
@@ -136,7 +135,7 @@ class SRM(Model):
                 # Coupling
                 A_in[i]    == A_out[i-1],
                 # Pressure increase
-                Tight([P[i] + dP[i] <= P[i-1]], name='dP', printwarning=True),
+                P[i] <= P[i-1],
                 # Chamber pressure
                 P_chamb[i]**2 == P[i-1]*P[i],
             ]
@@ -145,15 +144,14 @@ class SRM(Model):
                 constraints += [
                 # Flow acceleration (conservation of momentum)
                 # Note: assumes constant rate of burn through the chamber
-                Tight([dP[i] + rho[i-1]*u[i-1]**2 >= q[i]*u[i]/V_chamb[i]*l_sec +
-                    rho[i-1]*u[i-1]*u[i]], name='momCons', printwarning=True),
+                Tight([P[i-1]*A_in[i] + rho[i-1]*u[i-1]**2*A_in[i] >= P[i]*A_out[i] + q[i]*u[i]/V_chamb[i]*l_sec*A_out[i] +
+                    rho[i-1]*u[i-1]*u[i]*A_out[i]], name='momCons', printwarning=True),
                 # Temperatures
                 Tight([T_t[i]*mdot[i] <= mdot[i-1]*T_t[i-1] + q[i]*T_amb + q[i]*k_comb_p/c_p], name='energyCons', printwarning=True), #
                 # Mass flows
                 Tight([mdot[i-1] + q[i] >= mdot[i]], name='massCons', printwarning=True),
                 # # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
                 Tight([r[i] >= r_c * (P_chamb[i]/1e6*units('1/Pa'))**0.35 * (1 + 0.5*r_k*(u[i]+u[i-1]))], name='burnRate', printwarning=True)
-                # r[i] == r_c * (P_chamb[i]/1e6*units('1/Pa'))** 0.35 * (r_k*(u[i]**0.5*u[i-1]**0.5)),
                 ]
 
         # for i in range(n):
