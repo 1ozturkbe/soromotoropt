@@ -14,14 +14,12 @@ optimization framework.
 We assume that the rocket is divided into $n$ equal sections
 
 \begin{equation}
-    \rm{n} \times \mathrm{l_{\rm{sec}}} = \mathrm{l}
+    \rm{n} \times l_{\rm{sec}} = l
 \end{equation}
-
 
 \subsubsection{Bounding constraints}
 
-
-We limit the expansion ratio within a single section
+We limit the expansion ratio within a single section with parameter $k_{A, \rm{max}}$.
 
 \begin{align}
     k_A &\leq k_{A,\rm{max}} \\
@@ -55,15 +53,14 @@ the first section is simply the mass generated in that section.
 \begin{align}
     \dot{m}_0 &= q_0 &\mathrm{[Mass Cons.]} \\
     P_{end}*A_{\rm{in}, 0} &\geq P_0 A_{\rm{out}, 0} + q_0 u_0 V_{\rm{chamb},0} l_{\rm{sec}} A_{\rm{out},0} &\mathrm{[Mom. Cons.]} \\
-    T_{t, 0} \dot{m}_0 &\leq q_0 (T_{amb} + k_{comb,p} c_{p}) &\mathrm{[Energy Cons.]}
+    T_{t, 0} \dot{m}_0 &\leq q_0 (T_{\rm{amb}} + k_{comb,p} c_{p}) &\mathrm{[Energy Cons.]}
 \end{align}
 
 \subsubsection{In-cell constraints}
 
 \begin{align}
 V_{\rm{chamb}, \rm{i}} &= A_{\rm{avg}, \rm{i}} l_{\rm{sec}, \rm{i}} \\
-\frac{A_{\rm{in}, \rm{i}}}{A_{rm{out}, \rm{i}}} &= k_{A, \rm{i}} \\
-
+\frac{A_{\rm{in}, \rm{i}}}{A_{\rm{out}, \rm{i}}} &= k_{A, \rm{i}} \\
 \end{align}
 
 The chamber pressure $P_{\rm{chamb}, \rm{i}}$ is defined as the geometric average of
@@ -84,14 +81,42 @@ r_{\rm{i}} \geq r_c  \Big(\frac{P_{chamb,\rm{i}}}{\hat{P}}\Big)^{0.35} (1 + \fra
 where $r_c$ is a burn rate coefficient, $\hat{P}$ is a and $r_k$ is a non-dimensionalized parameter
 which describes the rate of erosive burning. These coefficients
 depend on the propellant used, but for this model are set at
-$5.6~\rm{mm/s}$, $10^{6}~\rm{Pa}$, and $0.05~\rm{1/(m/s)}$ respectively.
+$5.6~\rm{mm/s}$, $10^{6}~\rm{Pa}$, and $0.05~\rm{1/(m/s)}$ respectively. Using burn rate $r$,
+we also bound the amount of fuel remaining after every time step.
+
+\begin{equation}
+    A_{\rm{p, out, i}} + r_{\rm{i}} l_{\rm{b, i}} \delta t \leq A_{\rm{p, in, i}}
+\end{equation}
+
+Mass flow rate
+
+Product generation rate $q$ is related to the propellant density $\rho_{\rm{p}}$,
+burn rate $A_{\rm{b}}$, and burn rate $r$.
+
+\begin{align}
+    \dot{m}_{\rm{i}} &= \rho_{\rm{i}} u_{\rm{i}} A_{\rm{out}, \rm{i}} \\
+    q_{\rm{i}} &= \rho_{\rm{p}} A_{\rm{b, i}} r_{\rm{i}} \\
+    A_{\rm{b, i}} &= l_{\rm{b,i}} l_{\rm{sec}}
+\end{align}
+
+There are some constraints on the geometry of the cross-section, which we define
+as the burn area $A_{\rm{b}}$ and burn length $l_{\rm{b}}$. Firstly, since the most efficient
+shape w.r.t. burn length vs. area is a circle, the burn length has to be greater than the smallest possible circle
+with the same average area as the bore of the rocket. On the other hand, we also want to
+upper bound the geometry so the burn cross-sectional length cannot be greater than some factor
+$l_{\rm{b,max}}$ times the circumference of that circle.
+
+\begin{align}
+    l_{\rm{b}} &\geq 2 \sqrt{\pi A_{\rm{avg, i}}} \\
+    l_{\rm{b}} &\leq l_{\rm{b,max}} \times 2 \sqrt{\pi A_{\rm{avg, i}}}
+\end{align}
 
 \subsubsection{Cell coupling/conservation constraints}
 
 The inlet area of one cell is the outlet area of another
 
 \begin{equation}
-    A_{in, \rm{i}} = A_{out, \rm{i}-1}
+    A_{\rm{in}, \rm{i}} = A_{\rm{out}, \rm{i}-1}
 \end{equation}
 
 The static pressure in previous cell $\rm{i}-1$ must be strictly higher
@@ -122,9 +147,7 @@ The nozzle chokes the flow, and given some ambient pressure,
 produces thrust through a combination of mass ejection and
 pressure differential
 
-\begin{equation}
 
-\begin{equation}
 
 	% --------------------------------------------------------------
 	%     You don't have to mess with anything below this line.
