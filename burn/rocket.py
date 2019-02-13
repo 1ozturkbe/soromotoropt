@@ -6,7 +6,7 @@ from gpkit.constraints.tight import Tight
 from nozzle import Nozzle, NozzlePerformance
 from SRM import SRM
 
-from relaxations import relaxed_constants, post_process
+from relaxations import relaxed_constants, post_process, compute_constr_tightness, group_constr_tightness
 
 import numpy as np
 
@@ -110,8 +110,8 @@ if __name__ == "__main__":
         m.P_max                                      :8*10.**7*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
         # m.section.k_A                                :1*np.ones((nsections, nt)), #Temporarily
-        # m.T_target                                   :np.linspace(1.5e5,2.0e5,nt)*units('N'),
-        m.T_target                                   :np.array([150, 200, 100, 100])*units('kN'),
+        m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
+        # m.T_target                                   :np.array([150, 200, 100, 100])*units('kN'),
         m.s                                          :np.ones((nsections, nt)),
     })
 
@@ -125,3 +125,7 @@ if __name__ == "__main__":
     m_relax = relaxed_constants(m)
     sol = m_relax.localsolve(verbosity=4, reltol = 1e-2)
     post_process(sol)
+
+    # More post-processing for Tight constraints
+    tightnessDict = compute_constr_tightness(m, sol)
+    groupedDict = group_constr_tightness(tightnessDict)

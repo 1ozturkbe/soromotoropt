@@ -165,7 +165,7 @@ class SRM(Model):
                 # Product generation rate
                 q == rho_p * A_b * r,
                 # Burn area
-                A_b == l_b * l,
+                A_b == l_b * l_sec,
                 # Conservation of fuel
                 Tight([A_p_out + r*l_b*dt <= A_p_in], name='fuel', printwarning=True),
                 # Ideal gas law
