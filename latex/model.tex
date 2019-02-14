@@ -8,8 +8,17 @@ optimization framework.
 
 \subsection{Geometric explanation}
 
+Now that we have partitioned the rocket into $n_x$ sections that evolve in $n_t$ timesteps,
+and have assumed steady flow during each time, we can start formulating our quasi-steady,
+1D finite volume problem. The challenge is to be able to model mass, momentum and energy conservation,
+and basic reaction chemistry, in a conceptual design optimization framework. To do so,
+we consider a very coarse discretization of a \gls{srm} as shown in Figure~\ref{fig:SRMsection}.
+
 \tdplotsetmaincoords{50}{130}
 \tdplotsetrotatedcoords{0}{90}{0}
+
+\begin{figure}
+\begin{center}
 \begin{tikzpicture}[tdplot_main_coords]
     \draw[thick,->] (0,0,0) -- (1,0,0) node[anchor=north east]{$l$};
     \draw[thick,->] (0,0,0) -- (0,-1,0) node[anchor=south west]{$r$};
@@ -33,9 +42,11 @@ optimization framework.
     % Red dashed lines
     \draw[thick,dashed,color=red] (0,-0.85,0.85) -- (-4,-0.67,0.67) node[anchor=south east]{$$};
     \draw[thick,dashed,color=red] (0,0.85,-0.85) -- (-4,0.67,-0.67) node[anchor=north west]{$$};
-
 \end{tikzpicture}
-
+\end{center}
+    \caption{Labeling of a single section of the rocket. }
+    \label{fig:SRMsection}
+\end{figure}
 %\begin{tikzpicture}[join=round]
 %    \tikzstyle{conefill} = [fill=blue!20,fill opacity=0.8]
 %    \tikzstyle{ann} = [fill=white,font=\footnotesize,inner sep=1pt]
@@ -81,17 +92,15 @@ optimization framework.
 %    \end{scope}
 %\end{tikzpicture}
 
-\subsection{Constraints}
+\subsection{SRM Constraints}
 
-\subsubsection{Geometric constraints}
+\subsubsection{Bounding constraints}
 
 We assume that the rocket is divided into $n$ equal sections
 
 \begin{equation}
     \rm{n} \times l_{\rm{sec}} = l
 \end{equation}
-
-\subsubsection{Bounding constraints}
 
 We limit the expansion ratio within a single section with parameter $k_{A, \rm{max}}$.
 
@@ -118,7 +127,6 @@ we need to define the SRM exit quantities.
 
 Firstly, we define some simple internal geometry for each section, which are the
 chamber volume, area ratio, average area and burn area.
-
 Note that the last constraint, which equates the total internal area to the
 sum of the average bore area and the propellant cross-sectional area,
 is where the only signomial equality exists.
@@ -136,7 +144,7 @@ as the burn area $A_{\rm{b}}$ and burn length $l_{\rm{b}}$. Firstly, since the m
 shape w.r.t. burn length vs. area is a circle, the burn length has to be greater than the smallest possible circle
 with the same average area as the bore of the rocket. On the other hand, we also want to
 upper bound the geometry so the burn cross-sectional length cannot be greater than some factor
-$l_{\rm{b,max}}$ times the circumference of that circle.
+$l_{\rm{b,max}}$ times the circumference of the smallest circle.
 
 \begin{align}
     l_{\rm{b}} &\geq 2 \sqrt{\pi A_{\rm{avg, i}}} \\
@@ -144,12 +152,12 @@ $l_{\rm{b,max}}$ times the circumference of that circle.
 \end{align}
 
 The chamber pressure $P_{\rm{chamb}, \rm{i}}$ is defined as the geometric average of
-the inlet and outlet static pressures. We assume ideal gas, which is a poor assumption,
-but is deemed satisfactory for a conceptual analysis.
+the inlet and outlet static pressures. We assume the ideal gas law applied to both
+the inlet and outlet of each section.
 
 \begin{align}
     P_{\rm{chamb}, \rm{i}}^2 &= P_{\rm{i}-1} P_{\rm{i}} \\
-    P_{\rm{i}} = \rho_{\rm{i}} R T_{\rm{i}} \\
+    P_{\rm{i}} &= \rho_{\rm{i}} R T_{\rm{i}} \\
 \end{align}
 
 The burn rate in a given cell $\rm{i}$ is defined by the following inequality,
@@ -223,7 +231,7 @@ We define \textit{the first cell} as the first gas-generating section
 of the rocket, i.e. the one that has no incoming flow.
 Since there is no influx of mass, momentum or energy into that cell,
 the conservation laws are simplified.
-The pressure drop in the first section is the $\delta P$ required
+The pressure drop in the first section is the $\Delta P$ required
 to accelerate the mass flow in the first section. The mass flow out of
 the first section is simply the mass generated in that section.
 
