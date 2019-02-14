@@ -110,8 +110,8 @@ if __name__ == "__main__":
         m.P_max                                      :8*10.**7*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
         # m.section.k_A                                :1*np.ones((nsections, nt)), #Temporarily
-        m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
-        # m.T_target                                   :np.array([150, 200, 100, 100])*units('kN'),
+        # m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
+        m.T_target                                   :np.array([150, 250, 100, 100])*units('kN'),
         m.s                                          :np.ones((nsections, nt)),
     })
 

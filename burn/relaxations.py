@@ -34,6 +34,13 @@ def relaxed_constants(model, include_only=None, exclude=None):
 
     return feas
 
+def aug_dict(key, value, dict):
+    if key in dict.keys():
+        dict[key] += [value]
+    else:
+        dict[key] = [value]
+    return dict
+
 def post_process(sol):
     """
     Model to print relevant info for a solved model with relaxed constants
@@ -68,16 +75,15 @@ def compute_constr_tightness(m,sol):
                     leftsubbed = i.left.sub(variables).value
                     rightsubbed = i.right.sub(variables).value
                     rel_diff = abs(1 - leftsubbed/rightsubbed)
-                    tightnessDict[(constraint.name,count)] = [rel_diff, i]
-                    count +=1
+                    tightnessDict = aug_dict((constraint.name, count), [rel_diff, i], tightnessDict)
                 elif isinstance(i, SignomialInequality):
                     siglt0, = i.unsubbed
                     posy, negy = siglt0.posy_negy()
                     posy = posy.sub(variables).value
                     negy = negy.sub(variables).value
                     rel_diff = abs(1 - posy/negy)
-                    tightnessDict[(constraint.name,count)] = [rel_diff, i]
-        count += 1
+                    tightnessDict = aug_dict((constraint.name, count), [rel_diff, i], tightnessDict)
+            count += 1
     return tightnessDict
 
 def group_constr_tightness(tightnessDict):
@@ -85,16 +91,28 @@ def group_constr_tightness(tightnessDict):
     groupedDict = {}
     for key, value in sorted(tightnessDict.iteritems()):
         if key[0] in groupedDict.keys():
-            groupedDict[key[0]] += [value]
+            groupedDict[key[0]] += value
         else:
-            groupedDict[key[0]] = [value]
+            groupedDict[key[0]] = value
+    return groupedDict
 
-# def map_relaxations(groupedDict, nx, nt):
-#     strkeys = groupedDict.keys()
-#     lens = [len(groupedDict[i]) for i in strkeys]
-#     for i in strkeys:
-#
-#         groupedDict[i] =
+def map_relaxations(groupedDict, nx, nt):
+    strkeys = groupedDict.keys()
+    lens = [len(groupedDict[i]) for i in strkeys]
+    relaxDict = {i:None for i in strkeys}
+    for i in strkeys:
+        nd = groupedDict[i]
+        dim1 = len(groupedDict[i])
+        dim2 = len(groupedDict[i][0])
+        print dim1, dim2
+        if dim1 == nx*nt or dim2 == nx*nt:
+            nd = np.array(nd)[:,0].reshape((nt,nx))
+        if i !='massCons':
+            relaxDict[i] = np.array(nd)[:,0]
+        else:
+             relaxDict[i] = np.reshape(np.array(nd)[:,0], (nt, nx-1))
+    return relaxDict
+
 
 
 

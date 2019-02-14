@@ -2,7 +2,7 @@ from gpkit import Variable, Model, parse_variables, units
 from gpkit import SignomialsEnabled, SignomialEquality, Vectorize
 from gpkit.constraints.tight import Tight
 
-from relaxed_constants import relaxed_constants, post_process
+from relaxations import relaxed_constants, post_process
 
 import numpy as np
 
