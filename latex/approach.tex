@@ -1,22 +1,43 @@
 \section{Approach}
 
 To tackle this problem, we will first make a series of approximations to make it more tractable.
+We then partition the problem into two stages which take advantage of different optimization
+methods to handle different aspects of the rocket design problem.
 
 \subsection{Assumptions}
 \label{sec:assumptions}
 
 \begin{itemize}
-	\item \textbf{The internal flow is steady and isentropic:} This will allow us to make approximations for the static pressure inside the rocket, which is related to the burn rate.
-	\item \textbf{Pressure dependence on the burn rate is defined by the Saint-Robert's law:} $r = a P_c^n$
-	\item \textbf{Constant radial burn rate throughout the chamber:} This allows us to treat the problem as a 2D problem. This approximation is justifiable since there is a relative pressure drop in the bore as the fluid accelerates through it. The greater rate of erosive burning near the exit port is offset by the lower pressure near the port.
-	\item \textbf{The grain is not temperature sensitive:} This is definitely not a correct assumption, but since this is a proof of concept we can assume this in the beginning.
+	\item \textbf{The internal flow is steady and isentropic:} This will allow us to make approximations for the static pressure inside the rocket,
+		which is related to the burn rate.
+	\item \textbf{Pressure dependence on the burn rate is defined by the Saint-Robert's law:} $r = r_c P_c^n (1+r_k u_k)$. Note that
+		this crude approximation captures the dependence of burn rate on both static pressure and flow velocity (erosive burning).
+	\item \textbf{Burn rate in the chamber depends only on the burn area:} This allows us to treat the problem as a 2D problem.
+		Realistically, the curvature of the internal geometry will influence the heat flux at the fluid-propellant interface,
+		but we will assume otherwise for simplicity.
+	\item \textbf{The grain and flow thermodynamic parameters are not temperature and chemistry sensitive:}
+		We assume the stoichiometry of the burn, and the propellant
+		chemical and physical properties, and the flow properties do not change with temperature or flow chemical composition.
+		This is clearly not a good assumption for higher fidelity analyses.
+	\item \textbf{The fuel parameters are known:} In absence of propellant combustion data, we assume some
+		some intuitive figures for propellant properties and proceed.
 \end{itemize}
 
 \subsection{First stage problem}
 
 Starting with $n_{x}$ radial slices of the rocket evolving over $n_t$ time steps,
 we devise a low-fidelity method to determine how the aggregate geometric properties of the rocket
-evolve over time, such as the cross-sectional area and arc length of the fuel.
+evolve over time, such as the cross-sectional area and arc length of the fuel. This model also determines
+the flow properties within the rocket at each time step.
+
+\subsection{Second stage problem}
+
+Having determined the aggregate geometric parameters describing the rocket geometry, we
+now want to be able to solve the shape optimization problem for the rocket. Using
+the aggregate parameters and knowledge about the degree of relaxation of constraints,
+we solve a polynomial optimization problem that is able to map propellant into the rocket.
+
+%%%%%%%%%UNUSED%%%%%%%%%%%%%%%%
 
 %\begin{tikzpicture}[scale=2]
 %	\foreach \pos [count=\Ind] in {{0,0,1},{1,0,1},{0,0,0},{1,0,0},{0,1,1},{1,1,1},{0,1,0},{1,1,0}}{
@@ -40,10 +61,10 @@ evolve over time, such as the cross-sectional area and arc length of the fuel.
 %\end{tikzpicture}
 
 %		\section{Preliminary Optimization Problem}
-%	
+%
 %	To test whether or not the method of vector translations can be solved
-%	in a mixed integer convex form, we formulate the following problem 
-%	
+%	in a mixed integer convex form, we formulate the following problem
+%
 %	\subsection{Parameters}
 %	\begin{itemize}
 %	\item \textbf{$n_{ctrl}$:} number of control points
@@ -52,4 +73,3 @@ evolve over time, such as the cross-sectional area and arc length of the fuel.
 %	\item \textbf{$R$:} regression rate of fuel
 %	\item \textbf{$C_{profile}$:} burn surface length desired (vector of $n_t$)
 %	\end{itemize}
-		
