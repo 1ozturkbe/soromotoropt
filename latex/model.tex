@@ -94,6 +94,14 @@ we consider a very coarse discretization of a \gls{srm} as shown in Figure~\ref{
 
 \subsection{SRM Constraints}
 
+This section describes the constraints that govern the chemistry, thermodynamics
+and flow inside the \gls{srm} in a single time step.
+
+Before enumerating constraints, we start with some basic nomenclature. The subscripts $\rm{i}$
+represent a spatial discretization of the rocket. The time discretization has been omitted to
+reduce verbosity and make the constraint clearer. Subscripts $t$ denote total quantities
+(pressure and temperature).
+
 \subsubsection{Bounding constraints}
 
 We assume that the rocket is divided into $n$ equal sections
@@ -246,14 +254,14 @@ Since there is no influx to the first section, the burn rate constraint is simpl
 
 \begin{align}
     P_{\rm{chamb}, 0}^2 &= P_{\rm{end}} P_0 \\
-    r_{0} \geq r_c  \Big(\frac{P_{\rm{chamb},0}}{\hat{P}}\Big)^{0.35} (1 + \frac{1}{2} r_k (u_{0}))
+    r_{0} &\geq r_c  \Big(\frac{P_{\rm{chamb},0}}{\hat{P}}\Big)^{0.35} (1 + \frac{1}{2} r_k (u_{0}))
 \end{align}
 
-\subsubsection{Nozzle constraints}
+\subsection{Nozzle constraints}
 
 The nozzle chokes the flow, and given some ambient pressure,
 produces thrust through a combination of mass ejection and
-pressure differential
+pressure differential.
 
 
 
