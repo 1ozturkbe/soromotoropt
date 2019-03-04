@@ -34,8 +34,8 @@ class SRM(Model):
     P_amb                1e6          [Pa]         ambient pressure
     r_c                  5.606        [mm/s]       burn rate coefficient
     r_k                  0.05         [1/(m/s)]    erosive burn rate coefficient
-    rho_p                1700         [kg/m^3]     propellant density
-    k_comb_p             1.23e6       [J/kg]       propellant specific heat of combustion
+    rho_p                             [kg/m^3]     propellant density
+    k_comb_p                          [J/kg]       propellant specific heat of combustion
     c_p                  1000         [J/kg/K]     specific heat of combustion products
 
     Variables of length n
@@ -61,7 +61,7 @@ class SRM(Model):
 
     Upper Unbounded
     ---------------
-    radius, T_out
+    radius, T_out, k_comb_p
 
     Lower Unbounded
     ---------------
@@ -195,6 +195,8 @@ if __name__ == "__main__":
         m.k_A_max         :5,
         m.radius          :radius,
         # m.A_p_in         :0.1*np.ones(n)*np.pi*radius**2,
+        m.k_comb_p        :1.23e6*np.ones(n)*units('J/kg'),
+        m.rho_p           :1700*np.ones(n)*units('kg*m^-3'),
         m.A_p_out         :1e-20*np.ones(n)*np.pi*radius**2,
         m.mdot_out        :5*units('kg/s'),
         m.T_t_out         :1500*units('K'),

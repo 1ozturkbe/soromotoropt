@@ -18,10 +18,12 @@ class Rocket(Model):
 
     Variables
     ---------
-    t_T                  [s]     total burn time
-    r                    [m]     shell radius
-    l                    [m]     total length
-    P_max                [Pa]    maximum chamber pressure
+    t_T                  [s]        total burn time
+    r                    [m]        shell radius
+    l                    [m]        total length
+    P_max                [Pa]       maximum chamber pressure
+    rho_p       1700     [kg/m^3]   propellant density
+    k_comb_p    1.23e6   [J/kg]     heat of combustion of fuel
 
     Variables of length nx
     -----------------------------
@@ -31,14 +33,11 @@ class Rocket(Model):
     ----------------------
     T_target             [N]     thrust
     c_T                  [-]     thrust coefficient
-
-    Variables of length (nx, nt)
-    -----------------------------------
     s                    [-]     slack
 
     Lower Unbounded
     ---------------
-    t_T,  s
+    t_T
 
     Upper Unbounded
     ---------------
@@ -64,6 +63,9 @@ class Rocket(Model):
             A_fuel == self.section.A_p_in[:,0],
             T_target == self.nozzlePerformance.T,
             c_T == self.nozzlePerformance.c_T,
+            # Fuel parameters
+            self.section.k_comb_p == k_comb_p,
+            self.section.rho_p == rho_p,
         ]
 
         for i in range(nt-1):
@@ -90,8 +92,10 @@ class Rocket(Model):
             with SignomialsEnabled():
                 constraints += [
                 # Matching nozzle stagnation pressure
-                Tight([self.nozzlePerformance.P_t[i] <= self.section.P_out[i] +
-                                0.5*self.section.rho_out[i]*self.section.u_out[i]**2], name='PtNozzle', printwarning=True),
+                Tight([self.nozzlePerformance.P_t[i] <= s[i]*(self.section.P_out[i] +
+                                0.5*self.section.rho_out[i]*self.section.u_out[i]**2)], name='PtNozzle', printwarning=True),
+                s[i]*self.nozzlePerformance.P_t[i] >= self.section.P_out[i] +
+                                0.5*self.section.rho_out[i]*self.section.u_out[i]**2
                 ]
 
         return constraints, self.nozzle, self.nozzlePerformance, self.section
@@ -112,11 +116,10 @@ if __name__ == "__main__":
         # m.section.k_A                                :1*np.ones((nx, nt)), #Temporarily
         # m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
         m.T_target                                   :np.array([150, 250, 100, 100])*units('kN'),
-        m.s                                          :np.ones((nx, nt)),
     })
 
     # m.cost = np.prod(m.section.slack)*np.sum(m.A_fuel)*m.l#*(100+m.nozzle.k_A)
-    m.cost = np.sum(m.A_fuel)*m.l*m.r**4#*(100+m.nozzle.k_A)
+    m.cost = np.prod(m.s)*np.sum(m.A_fuel)*m.l*m.r**4#*(100+m.nozzle.k_A)
     # m.cost = np.sum(m.A_fuel)*m.l
     # m.cost = np.prod(m.section.A_slack**3)*np.prod(m.nozzlePerformance.T**-1)
     # m.cost = np.prod(m.nozzlePerformance.T**-1)
