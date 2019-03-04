@@ -4,6 +4,7 @@ from gpkit import Model
 from gpkit.nomials import PosynomialInequality, SignomialInequality
 from gpkit.constraints.tight import Tight
 
+import numpy as np
 
 """
 Methods to precondition an SP so that it solves with a relaxed constants algorithm
@@ -96,7 +97,7 @@ def group_constr_tightness(tightnessDict):
             groupedDict[key[0]] = value
     return groupedDict
 
-def map_relaxations(groupedDict, nx, nt):
+def map_relaxations(groupedDict, nt, nx):
     strkeys = groupedDict.keys()
     lens = [len(groupedDict[i]) for i in strkeys]
     relaxDict = {i:None for i in strkeys}
@@ -105,12 +106,24 @@ def map_relaxations(groupedDict, nx, nt):
         dim1 = len(groupedDict[i])
         dim2 = len(groupedDict[i][0])
         print dim1, dim2
-        if dim1 == nx*nt or dim2 == nx*nt:
+        # Mapping relaxations in time and space
+        if dim1 == nx*nt and i != 'massCons':
             nd = np.array(nd)[:,0].reshape((nt,nx))
-        if i !='massCons':
-            relaxDict[i] = np.array(nd)[:,0]
+        if dim1 == (nx+1)*nt:
+            nd = np.array(nd)[:,0].reshape((nt,nx+1))
+        elif dim1 == nt:
+            nd = np.array(nd)[:,0].reshape((nt,1))
+        elif dim1 == nx:
+            nd = np.array(nd)[:,0].reshape((1,nx))
+        # Special cases where monomials (always tight) replace posys
+        # in the first section
+        elif dim1 == nx*nt and i == 'massCons':
+            a = np.array(nd)[:,0].reshape((nt, nx))
+            nd = np.concatenate((np.zeros((nt,1)), a), axis=1)
         else:
-             relaxDict[i] = np.reshape(np.array(nd)[:,0], (nt, nx-1))
+            print 'Warning: tight constraint that does not' \
+                  ' obey the specified relaxations detected.'
+        relaxDict[i] = nd
     return relaxDict
 
 
