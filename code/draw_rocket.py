@@ -8,10 +8,10 @@ from gpkit.small_scripts import mag
 def draw_2D(sol, m, vectorvar, title):
     fig = plt.figure()
     ax = plt.axes(projection='3d')
-    nsections = len(m.section.A_p_in)
+    nx = len(m.section.A_p_in)
     nt = len(m.section.A_p_in[0])
     x = np.linspace(1, nt, nt)
-    y = np.linspace(1, nsections, nsections)
+    y = np.linspace(1, nx, nx)
     X, Y = np.meshgrid(x,y)
     Z = sol(vectorvar)
     ax.contour3D(X, Y, Z, 50, cmap='binary')
@@ -23,9 +23,9 @@ def draw_2D(sol, m, vectorvar, title):
 def draw_2D_bar(sol, m, vectorvar, title):
     fig = plt.figure()
     ax = plt.axes(projection='3d')
-    nsections = len(m.section.A_p_in)
+    nx = len(m.section.A_p_in)
     nt = len(m.section.A_p_in[0])
-    x = np.linspace(1, nsections, nsections)
+    x = np.linspace(1, nx, nx)
     y = np.linspace(1, nt, nt)
     X, Y = np.meshgrid(x,y)
     Z = sol(vectorvar)
@@ -41,13 +41,13 @@ def draw_2D_bar(sol, m, vectorvar, title):
 def draw1D(sol, m, var, title):
     fig = plt.figure()
     ax = plt.axes()
-    nsections = len(m.section.A_p_in)
+    nx = len(m.section.A_p_in)
     nt = len(m.section.A_p_in[0])
     if len(var) == nt:
         n = nt
         plt.xlabel('Time step')
-    elif len(var) == nsections:
-        n = nsections
+    elif len(var) == nx:
+        n = nx
         plt.xlabel('Axial coordinate')
     else:
         print 'Warning: axis not recognized'
@@ -60,11 +60,11 @@ def draw1D(sol, m, var, title):
 def draw_fuel(sol,m):
     fig = plt.figure()
     ax = plt.axes()
-    nsections = len(m.section.A_p_in)
+    nx = len(m.section.A_p_in)
     nt = len(m.section.A_p_in[0])
     z = sol(m.section.A_p_in)
-    fig, ax = plt.subplots(1,nsections)
-    for i in range(nsections):
+    fig, ax = plt.subplots(1,nx)
+    for i in range(nx):
         ax[i].pie(z[i]/sum(z[i]), labels = np.linspace(1,nt,nt), radius = mag(z[i,0])/max(z.flat))
         ax[i].axis('equal')
     plt.show()

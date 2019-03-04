@@ -1,12 +1,12 @@
-from gpkit import Variable, Model, parse_variables, units
-from gpkit import SignomialsEnabled, SignomialEquality, Vectorize
-from gpkit.constraints.bounded import Bounded
+from gpkit import Model, parse_variables, units
+from gpkit import SignomialsEnabled, Vectorize
 from gpkit.constraints.tight import Tight
 
 from nozzle import Nozzle, NozzlePerformance
 from SRM import SRM
 
-from relaxations import relaxed_constants, post_process, compute_constr_tightness, group_constr_tightness
+from relaxations import relaxed_constants, post_process, compute_constr_tightness
+from relaxations import group_constr_tightness, map_relaxations
 
 import numpy as np
 
@@ -23,7 +23,7 @@ class Rocket(Model):
     l                    [m]     total length
     P_max                [Pa]    maximum chamber pressure
 
-    Variables of length nsections
+    Variables of length nx
     -----------------------------
     A_fuel               [m^2]   initial fuel areas
 
@@ -32,7 +32,7 @@ class Rocket(Model):
     T_target             [N]     thrust
     c_T                  [-]     thrust coefficient
 
-    Variables of length (nsections, nt)
+    Variables of length (nx, nt)
     -----------------------------------
     s                    [-]     slack
 
@@ -46,21 +46,21 @@ class Rocket(Model):
 
     """
 
-    def setup(self, nt, nsections):
+    def setup(self, nt, nx):
         exec parse_variables(Rocket.__doc__)
         self.nt = nt
-        self.nsections = nsections
+        self.nx = nx
         self.nozzle = Nozzle()
         with Vectorize(nt):
             self.nozzlePerformance = NozzlePerformance(self.nozzle)
-            self.section = SRM(nsections)
+            self.section = SRM(nx)
         constraints = [
             # Limiting nozzle size to cross-sectional area
             # self.nozzle.A_e <= np.pi*r**2,
             # Equal time segments
             self.section.dt == t_T/nt,
             # All fuel is consumed
-            self.section.A_p_out[:,-1] == 1e-20*np.ones(nsections)*np.pi*r**2,
+            self.section.A_p_out[:,-1] == 1e-20*np.ones(nx)*np.pi*r**2,
             A_fuel == self.section.A_p_in[:,0],
             T_target == self.nozzlePerformance.T,
             c_T == self.nozzlePerformance.c_T,
@@ -98,8 +98,8 @@ class Rocket(Model):
 
 if __name__ == "__main__":
     nt = 4
-    nsections = 6
-    m = Rocket(nt, nsections)
+    nx = 6
+    m = Rocket(nt, nx)
     radius = 0.2*units('m')
     length = 2*units('m')
     m.substitutions.update({
@@ -109,10 +109,10 @@ if __name__ == "__main__":
         # m.r                                          :radius,
         m.P_max                                      :8*10.**7*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
-        # m.section.k_A                                :1*np.ones((nsections, nt)), #Temporarily
+        # m.section.k_A                                :1*np.ones((nx, nt)), #Temporarily
         # m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
         m.T_target                                   :np.array([150, 250, 100, 100])*units('kN'),
-        m.s                                          :np.ones((nsections, nt)),
+        m.s                                          :np.ones((nx, nt)),
     })
 
     # m.cost = np.prod(m.section.slack)*np.sum(m.A_fuel)*m.l#*(100+m.nozzle.k_A)
@@ -129,3 +129,4 @@ if __name__ == "__main__":
     # More post-processing for Tight constraints
     tightnessDict = compute_constr_tightness(m, sol)
     groupedDict = group_constr_tightness(tightnessDict)
+    relaxDict = map_relaxations(groupedDict, nt, nx)

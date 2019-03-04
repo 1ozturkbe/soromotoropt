@@ -71,11 +71,11 @@ def return_radii(nPoints, sol, mrocket):
 def plot_star(nPoints, r_sol, l, title='Star'):
     fig = plt.figure()
     ax = plt.axes(projection='3d')
-    nsections = len(r_sol('A'))
+    nx = len(r_sol('A'))
     nt = len(r_sol('A')[0])
     r_o = mag(r_sol('r_o'))
     r_i = mag(r_sol('r_i'))
-    x = np.linspace(0, l, nsections)
+    x = np.linspace(0, l, nx)
     theta = np.linspace(0, 2*np.pi, 2*nPoints + 1)
     X, Theta = np.meshgrid(x,theta)
     plt.rc('axes', prop_cycle=(cycler('color', ['r', 'g', 'b', 'y']) +
