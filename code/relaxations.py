@@ -1,5 +1,6 @@
 from gpkit.constraints.relax import ConstantsRelaxed
-from gpkit import Model
+from gpkit import Model, units
+from gpkit.small_scripts import mag
 
 from gpkit.nomials import PosynomialInequality, SignomialInequality
 from gpkit.constraints.tight import Tight
@@ -97,33 +98,33 @@ def group_constr_tightness(tightnessDict):
             groupedDict[key[0]] = value
     return groupedDict
 
-def map_relaxations(groupedDict, nt, nx):
+def map_relaxations(groupedDict, nt, nx, decimals = 3):
     strkeys = groupedDict.keys()
-    lens = [len(groupedDict[i]) for i in strkeys]
     relaxDict = {i:None for i in strkeys}
     for i in strkeys:
+        dim = len(groupedDict[i])
         nd = groupedDict[i]
-        dim1 = len(groupedDict[i])
-        dim2 = len(groupedDict[i][0])
-        print dim1, dim2
         # Mapping relaxations in time and space
-        if dim1 == nx*nt and i != 'massCons':
-            nd = np.array(nd)[:,0].reshape((nt,nx))
-        if dim1 == (nx+1)*nt:
-            nd = np.array(nd)[:,0].reshape((nt,nx+1))
-        elif dim1 == nt:
-            nd = np.array(nd)[:,0].reshape((nt,1))
-        elif dim1 == nx:
-            nd = np.array(nd)[:,0].reshape((1,nx))
+        dim1, dim2 = [0,0]
+        if dim == nx*nt:
+            [dim1,dim2] = [nt,nx]
+        elif dim == nt:
+            [dim1,dim2] = [nt, 1]
+        elif dim == nx:
+            [dim1,dim2] = [1, nx]
         # Special cases where monomials (always tight) replace posys
         # in the first section
-        elif dim1 == nx*nt and i == 'massCons':
-            a = np.array(nd)[:,0].reshape((nt, nx))
-            nd = np.concatenate((np.zeros((nt,1)), a), axis=1)
+        elif dim == (nx-1)*nt and i == 'massCons':
+            [dim1,dim2] = [nt, nx]
+            a = np.array(nd)[:,0].reshape((nt, nx-1))
+            nd = np.concatenate((np.zeros((nt,1))*units(''), a), axis=1)
+            nd = nd.reshape((nx*nt,1))
         else:
             print 'Warning: tight constraint that does not' \
                   ' obey the specified relaxations detected.'
-        relaxDict[i] = nd
+        nd = [mag(j) for j in np.array(nd)[:,0]]
+        nd = np.array(nd).reshape((dim1, dim2))
+        relaxDict[i] = np.round(nd, decimals=decimals)
     return relaxDict
 
 
