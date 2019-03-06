@@ -1,0 +1,60 @@
+\section{Relaxations and post-processing}
+\label{sec:relaxations}
+
+Now that we have a feasible solution to the finite volume problem
+with relaxed conservation laws, we need to determine how to best
+accommodate these relaxations to map propellant into the interior of
+the solid rocket motor. A key point to remember is that all of the relaxations are \emph{conservative},
+i.e. mass, momentum and energy can only be lost, not created. Ideally,
+we have a solution that does not lose in any of these quantities since it will
+result in the minimum cost solution possible. However, the fact that thrust is an \emph{input}
+to the model and not a variable makes this almost surely impossible.
+
+There are eight types of equality constraints that are relaxed in the formulation:
+\begin{itemize}
+    \item Nozzle total pressure
+    \item Nozzle total temperature
+    \item Fuel mass conservation
+    \item Total temperature within SRM section
+    \item Burn rate within SRM section
+    \item Mass conservation within SRM section
+    \item Momentum conservation within SRM section
+    \item Energy conservation within SRM section
+\end{itemize}
+
+Empirically, it was found that the first three constraints are always tight, which
+somewhat simplifies the analysis. Furthermore, we can ignore the relaxations of
+total temperature, since the effect of this is properly captured in the energy conservation constraint.
+So the ones that we will be considering in the following sections are burn rate, and
+mass, momentum and energy conservation laws.
+
+\subsection{Types of materials within rocket motor}
+
+We will assume that the propellant is made up of three different materials
+
+\begin{itemize}
+    \item \textbf{Propellant}: This is the chemical that
+    provides the chemical potential energy and mass to the reaction.
+    \item \textbf{Accelerant}: This chemical contributes mass but does not contribute
+    to the heat of combustion of the reaction, but increases the rate at which
+    propellant burns.
+    \item \textbf{Filler}: This chemical contributes mass but does not contribute
+    to the heat of combustion of the reaction. It slows down the rate of reaction by
+    its presence.
+\end{itemize}
+
+\subsection{Mass flow relaxation}
+
+The loss of mass through the burn can be thought of as the presence of voids in the
+propellant. We define $p_f$ as the porosity of the section, which describes this.
+It is found that mass conservation laws are often tight to a thousandth of the constraint,
+so porosity values of the propellant area expected to be low.
+
+\subsection{Burn rate relaxation}
+
+\begin{equation}
+    1 + r_b = \Big(1+\frac{\beta_a}{\beta_p}\Big) (1-\beta_f + p_f),~\beta_p + \beta_a + \beta_b = 1
+\end{equation}
+
+
+
