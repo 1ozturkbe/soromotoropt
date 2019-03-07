@@ -53,7 +53,6 @@ class SRM(Model):
     P                                 [Pa]         static pressure
     P_chamb                           [Pa]         section static pressure
     V_chamb                           [m^3]        section volume
-    T_t                               [K]          stagnation temperature
     T                                 [K]          static temperature
     u                                 [m/s]        flow velocity
     r                                 [mm/s]       burn rate
@@ -61,11 +60,11 @@ class SRM(Model):
 
     Upper Unbounded
     ---------------
-    radius, T_out, k_comb_p
+    radius, k_comb_p
 
     Lower Unbounded
     ---------------
-    dt, A_p_out, mdot_out, P_out
+    dt, A_p_out, T_t_out, P_out
 
     LaTex Strings
     -------------
@@ -112,7 +111,6 @@ class SRM(Model):
                     n*l_sec == l,
                     # Exit quantities
                     u_out == u[n-1],
-                    T_t_out == T_t[n-1],
                     T_out == T[n-1],
                     mdot_out == mdot[n-1],
                     rho_out == rho[n-1],
@@ -121,19 +119,21 @@ class SRM(Model):
         with SignomialsEnabled():
             constraints += [
                 # Inlet temperatures
-                Tight([T_t[0]*mdot[0] <= q[0]*T_amb + q[0]*k_comb_p/c_p], name='energyCons' , printwarning=True),
-                T_t >= T_amb,
+                Tight([(T[0] + u[0]**2/(2*c_p))*mdot[0] <= q[0]*T_amb + q[0]*k_comb_p/c_p], name='energyCons' , printwarning=True),
+                T >= T_amb,
                 # Chamber pressure
                 P_chamb[0]**2 == P_end*P[0],
                 # # Burn rate
                 Tight([r[0] >= r_c * (P_chamb[0]/1e6*units('1/Pa'))** 0.35 * (1 + 0.5*r_k*u[0])], name='burnRate', printwarning=True),
-
+                # Tight([r[0] == r_c * (P_chamb[0]/1e6*units('1/Pa'))** 0.35 * (0.5*r_k*u[0])], name='burnRate', printwarning=True),
+                # Exit quantities
+                Tight([T_t_out <= T[n-1] + u_out**2/(2*c_p)], name='Ttout', printwarning=True),
             ]
 
         for i in range(1,n):
             constraints += [
                 # Coupling
-                A_in[i]    == A_out[i-1],
+                A_in[i] == A_out[i-1],
                 # Pressure increase
                 P[i] <= P[i-1],
                 # Chamber pressure
@@ -147,10 +147,11 @@ class SRM(Model):
                 Tight([P[i-1]*A_in[i] + rho[i-1]*u[i-1]**2*A_in[i] >= P[i]*A_out[i] + q[i]*u[i]/V_chamb[i]*l_sec*A_out[i] +
                     rho[i-1]*u[i-1]*u[i]*A_out[i]], name='momCons', printwarning=True),
                 # Temperatures
-                Tight([T_t[i]*mdot[i] <= mdot[i-1]*T_t[i-1] + q[i]*T_amb + q[i]*k_comb_p/c_p], name='energyCons', printwarning=True), #
+                Tight([(T[i]+u[i]**2/(2*c_p))*mdot[i] <= mdot[i-1]*(T[i-1]+u[i-1]**2/(2*c_p)) + q[i]*T_amb + q[i]*k_comb_p/c_p], name='energyCons', printwarning=True),
                 # Mass flows
                 Tight([mdot[i-1] + q[i] >= mdot[i]], name='massCons', printwarning=True),
                 # # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
+                # Tight([r[i] == r_c * (P_chamb[i]/1e6*units('1/Pa'))**0.35 * (0.5*r_k*(u[i]*u[i-1])**0.5)], name='burnRate', printwarning=True)
                 Tight([r[i] >= r_c * (P_chamb[i]/1e6*units('1/Pa'))**0.35 * (1 + 0.5*r_k*(u[i]+u[i-1]))], name='burnRate', printwarning=True)
                 ]
 
@@ -180,8 +181,6 @@ class SRM(Model):
             constraints += [
                     # Taking averages (with a slack variable)
                     A_in*A_out == A_avg**2,
-                    # Stagnation quantities
-                    Tight([T_t <= (T + u**2/(2*c_p))], name='Tt', printwarning=True),
                     # Constraining areas
                     SignomialEquality(A_avg + A_p_in, np.pi*radius**2),
                 ]

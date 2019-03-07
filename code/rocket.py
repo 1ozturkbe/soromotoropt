@@ -118,6 +118,11 @@ if __name__ == "__main__":
         m.T_target                                   :np.array([150, 250, 100, 100])*units('kN'),
     })
 
+    x0 = dict()
+    # x0.update({m.A_fuel: np.linspace(0.5*np.pi, 0.5*np.pi, nx),
+    #            m.section.P: 8*10.**7*units('Pa'),
+    #            m.section.T: 1000*units('K')})
+
     # m.cost = np.prod(m.section.slack)*np.sum(m.A_fuel)*m.l#*(100+m.nozzle.k_A)
     m.cost = np.prod(m.s)*np.sum(m.A_fuel)*m.l*m.r**4#*(100+m.nozzle.k_A)
     # m.cost = np.sum(m.A_fuel)*m.l
@@ -126,10 +131,14 @@ if __name__ == "__main__":
     # m = Model(m.cost, Bounded(m), m.substitutions)
     # m_relax = relaxed_constants(m,include_only=[m.t_T, m.l, m.r, m.P_max, m.T_target])
     m_relax = relaxed_constants(m)
-    sol = m_relax.localsolve(verbosity=4, reltol = 1e-2)
+    sol = m_relax.localsolve(verbosity=4, reltol = 1e-2, x0=x0)
     post_process(sol)
 
     # More post-processing for Tight constraints
     tightnessDict = compute_constr_tightness(m, sol)
     groupedDict = group_constr_tightness(tightnessDict)
     relaxDict = map_relaxations(groupedDict, nt, nx)
+
+for i in ['burnRate', 'massCons', 'energyCons', 'momCons', 'Ttout']:
+    print i
+    print relaxDict[i]

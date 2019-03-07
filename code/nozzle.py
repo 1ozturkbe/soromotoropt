@@ -116,7 +116,7 @@ class NozzlePerformance(Model):
             u_star/a_star == 1.,
             # Stagnation temperature
             2.*c_p*T_e + u_e**2. <= 2.*c_p*T_t,
-            Tight([T_star + u_star**2./(2.*c_p) <= T_t], name='TtNozzle', printwarning=True),
+            Tight([T_star + u_star**2./(2.*c_p) <= T_t], name='TtThroat', printwarning=True),
             # Exit Mach number
             M_e == u_e/a_e,
             M_e >= 1.,
