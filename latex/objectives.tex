@@ -1,6 +1,16 @@
 \section{Objectives for first stage problem}
 
-Since the goal is to be able to optimize for a given thrust profile,
-we define dummy variables to $A_{\rm{fuel}}$ and $T_{\rm{target}}$
-to be able to match the thrust requirements, and be able to extract the
-initial fuel distribution.
+The goal of the first stage model is to be able to optimize for a given thrust profile.
+As such, the thrust and total burn time are inputs to the model, and all of the
+exterior geometry, such as the length and radius of the rocket, and the interior
+geometry, such as the fuel quantities, shape parameters, and distribution, are the
+outputs. We use the following objective to optimize the model
+
+\begin{equation}
+    \rm{Objective} =\prod\limits_{j=0}^{n_t-1} s^{\alpha} \times \sum\limits_{j=0}^{n_t-1} A_{\rm{fuel}}
+    \times l \times r^{\beta}
+\end{equation}
+
+The constants $\alpha$ can be adjusted by the user to improve the
+convergence of the model. $\beta$ helps control the aspect ratio of the
+rocket if a narrower or wider ratio is desired.
