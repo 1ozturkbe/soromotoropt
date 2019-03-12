@@ -1,6 +1,6 @@
 \section{Approach}
 
-To tackle this problem, we will first make a series of approximations to make it more tractable.
+To tackle this problem, we will make a series of approximations to make it more tractable.
 We then partition the problem into two stages which take advantage of different optimization
 methods to handle different aspects of the rocket design problem.
 
@@ -8,17 +8,17 @@ methods to handle different aspects of the rocket design problem.
 \label{sec:assumptions}
 
 \begin{itemize}
-	\item \textbf{The internal flow is steady and isentropic:} This will allow us to make approximations for the static pressure inside the rocket,
-		which is related to the burn rate.
-	\item \textbf{Pressure dependence on the burn rate is defined by the Saint-Robert's law:} $r = r_c P_c^n (1+r_k u_k)$. Note that
-		this crude approximation captures the dependence of burn rate on both static pressure and flow velocity (erosive burning).
-	\item \textbf{Burn rate in the chamber depends only on the burn area:} This allows us to treat the problem as a 2D problem.
+	\item \textbf{The internal flow is steady during each time step} This will allow us to make approximations
+	for the static pressure inside the rocket,	which is related to the burn rate.
+	\item \textbf{Pressure dependence on the burn rate is defined by the Saint-Robert's law:} $r = r_c P_c^n (1+r_k u_k)$.
+		This crude approximation captures the dependence of burn rate on both static pressure and flow velocity (erosive burning).
+	\item \textbf{Burn rate in the chamber depends only on the burn surface area:}
+	    This allows us to treat the problem as a 2D problem.
 		Realistically, the curvature of the internal geometry will influence the heat flux at the fluid-propellant interface,
 		but we will assume otherwise for simplicity.
 	\item \textbf{The grain and flow thermodynamic parameters are not temperature and chemistry sensitive:}
 		We assume the stoichiometry of the burn, and the propellant
 		chemical and physical properties, and the flow properties do not change with temperature or flow chemical composition.
-		This is clearly not a good assumption for higher fidelity analyses.
 	\item \textbf{The fuel parameters are known:} In absence of propellant combustion data, we assume some
 		some intuitive figures for propellant properties and proceed.
 \end{itemize}
@@ -26,8 +26,9 @@ methods to handle different aspects of the rocket design problem.
 \subsection{First stage problem}
 
 Starting with $n_{x}$ radial slices of the rocket evolving over $n_t$ time steps,
-we devise a low-fidelity method to determine how the aggregate geometric properties of the rocket
-evolve over time, such as the cross-sectional area and arc length of the fuel. This model also determines
+we will devise a low-fidelity method to determine how the aggregate geometric properties of the rocket
+evolve over time, such as the cross-sectional area and arc length of the fuel at radial slices of the rocket.
+This model also determines
 the flow properties within the rocket at each time step.
 
 \subsection{Second stage problem}
@@ -35,41 +36,5 @@ the flow properties within the rocket at each time step.
 Having determined the aggregate geometric parameters describing the rocket geometry, we
 now want to be able to solve the shape optimization problem for the rocket. Using
 the aggregate parameters and knowledge about the degree of relaxation of constraints,
-we solve a polynomial optimization problem that is able to map propellant into the rocket.
-
-%%%%%%%%%UNUSED%%%%%%%%%%%%%%%%
-
-%\begin{tikzpicture}[scale=2]
-%	\foreach \pos [count=\Ind] in {{0,0,1},{1,0,1},{0,0,0},{1,0,0},{0,1,1},{1,1,1},{0,1,0},{1,1,0}}{
-%	\node[circle,inner sep=1pt,fill=black,label=\ifnum\Ind<7 below\else above\fi:\Ind](p\Ind) at (\pos){};
-%	}
-%	\draw (p1)--(p2)--(p3)--(p6)--(p12)--(p11)--(p10)--(p7)edge(p1)--(p8)edge(p11)edge(p2)--(p9)edge(p12)--(p3);
-%	\draw[dotted] (p4)edge(p1)edge(p10)--(p5)edge(p2)edge(p11)--(p6);
-%\end{tikzpicture}
-
-%\tdplotsetmaincoords{60}{30}
-%\begin{tikzpicture}[tdplot_main_coords,>=latex,line join=bevel,font=\sffamily,
-%bullet/.style={circle,fill,inner sep=1pt},scale=4]
-%  \foreach \X in {0,1}
-%  {\foreach \A [evaluate=\A as \Y using {(cos(3.14159*\A/2)+0.5)}] in {1,8}
-%  {\foreach \B [evaluate=\B as \Z using {(sin(3.14159*\B/2)+0.5)}] in {1,8}
-%  {
-%  	\path (\X,\Y,\Z) node[bullet, label=below:\A], () {};
-%}}}
-%%  \draw[dotted] (1)  -- (4) -- (6)
-%%  (4) -- (10)  (2) -- (5) -- (11);
-%\end{tikzpicture}
-
-%		\section{Preliminary Optimization Problem}
-%
-%	To test whether or not the method of vector translations can be solved
-%	in a mixed integer convex form, we formulate the following problem
-%
-%	\subsection{Parameters}
-%	\begin{itemize}
-%	\item \textbf{$n_{ctrl}$:} number of control points
-%	\item \textbf{$n_t$:} number of time steps
-%	\item \textbf{$r$:} radius of the rocket
-%	\item \textbf{$R$:} regression rate of fuel
-%	\item \textbf{$C_{profile}$:} burn surface length desired (vector of $n_t$)
-%	\end{itemize}
+we solve a polynomial optimization problem that is able to map propellant, accelerant
+and filler material into the rocket.

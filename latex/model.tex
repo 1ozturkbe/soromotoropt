@@ -2,17 +2,21 @@
 
 We propose a 1D quasi-steady approximation of the combustion problem
 using the approximations from Section~\ref{sec:assumptions}. Note
-that, although the conservation laws are strict inequalities,
-they have been relaxed to be modeled in a difference-of-convex
+that conservation laws, which are strict inequalities,
+have been relaxed to be modeled in a difference-of-convex
 optimization framework.
 
 \subsection{Geometric explanation}
 
-Now that we have partitioned the rocket into $n_x$ sections that evolve in $n_t$ timesteps,
-and have assumed steady flow during each time, we can start formulating our quasi-steady,
-1D finite volume problem. The challenge is to be able to model mass, momentum and energy conservation,
+Figure~\ref{fig:SRMsection} shows a cross-section of the rocket
+that we will consider from here onward.
+We partition the rocket into $n_x$ of these sections that evolve in $n_t$ timesteps,
+and assume steady flow during each time. The fluid travels strictly
+in the $l$ direction, and the conservation laws are enforced at
+each bore cross-sectional area $A$. The challenge is to be able to model mass, momentum and energy conservation,
 and basic reaction chemistry, in a conceptual design optimization framework. To do so,
-we consider a very coarse discretization of a \gls{srm} as shown in Figure~\ref{fig:SRMsection}.
+we have to use consider a very coarse discretization of a \gls{srm} as shown in Figure~\ref{fig:SRMsection}.
+
 
 \tdplotsetmaincoords{50}{130}
 \tdplotsetrotatedcoords{0}{90}{0}
@@ -33,11 +37,11 @@ we consider a very coarse discretization of a \gls{srm} as shown in Figure~\ref{
     % Tophalf, top circle
     \tdplotdrawarc[tdplot_rotated_coords, color=red]{(-0.25,0.25,-4)}{1}{25}{248}{anchor=north west}{$$};
     % Top half, bottom circle
-    \tdplotdrawarc[tdplot_rotated_coords, color=red]{(0.25,-0.25,-4)}{1}{205}{428}{anchor=north west}{$$};
+    \tdplotdrawarc[tdplot_rotated_coords, color=red]{(0.25,-0.25,-4)}{1}{205}{428}{anchor=north west, right=0.5cm, above=0.5cm}{$A_{in}$};
     % Bottom half, top circle
     \tdplotdrawarc[tdplot_rotated_coords, color=red]{(-0.25,0.25,0)}{1.25}{28}{243}{anchor=north west}{$$};
     % Bottom half, bottom circle
-    \tdplotdrawarc[tdplot_rotated_coords, color=red]{(0.25,-0.25,0)}{1.25}{208}{425}{anchor=north west}{$$};
+    \tdplotdrawarc[tdplot_rotated_coords, color=red]{(0.25,-0.25,0)}{1.25}{208}{425}{anchor=north west, right=0.5cm}{$A_{out}$};
 
     % Red dashed lines
     \draw[thick,dashed,color=red] (0,-0.85,0.85) -- (-4,-0.67,0.67) node[anchor=south east]{$$};
@@ -47,59 +51,16 @@ we consider a very coarse discretization of a \gls{srm} as shown in Figure~\ref{
     \caption{Labeling of a single section of the rocket. }
     \label{fig:SRMsection}
 \end{figure}
-%\begin{tikzpicture}[join=round]
-%    \tikzstyle{conefill} = [fill=blue!20,fill opacity=0.8]
-%    \tikzstyle{ann} = [fill=white,font=\footnotesize,inner sep=1pt]
-%    \tikzstyle{ghostfill} = [fill=white]
-%    \tikzstyle{ghostdraw} = [draw=black!50]
-%
-%
-%    % Second version of the cone
-%
-%\begin{scope}[xshift=3.5cm]
-%    \filldraw[ghostdraw,ghostfill](-.775,1.922)--(-1.162,.283)--(-.274,.5)
-%                                   --(-.183,2.067)--cycle;
-%    \filldraw[ghostdraw,ghostfill](-.183,2.067)--(-.274,.5)--(.775,.424)
-%                                   --(.516,2.016)--cycle;
-%    \filldraw[ghostdraw,ghostfill](.516,2.016)--(.775,.424)--(1.369,.1)
-%                                   --(.913,1.8)--cycle;
-%    \filldraw[ghostdraw,ghostfill](-.913,1.667)--(-1.369,-.1)--(-1.162,.283)
-%                                   --(-.775,1.922)--cycle;
-%    \filldraw[ghostdraw,ghostfill](.913,1.8)--(1.369,.1)--(1.162,-.283)
-%                                   --(.775,1.545)--cycle;
-%    \filldraw[ghostdraw,ghostfill](-.516,1.45)--(-.775,-.424)--(-1.369,-.1)
-%                                   --(-.913,1.667)--cycle;
-%    \filldraw[ghostdraw,ghostfill](.775,1.545)--(1.162,-.283)--(.274,-.5)
-%                                   --(.183,1.4)--cycle;
-%    \filldraw[fill=red,fill opacity=0.5](-.516,1.45)--(-.775,-.424)--(.274,-.5)
-%                                         --(.183,1.4)--cycle;
-%    \fill(-.775,-.424) circle (2pt);
-%    \fill(.274,-.5) circle (2pt);
-%    \fill(-.516,1.45) circle (2pt);
-%    \fill(.183,1.4) circle (2pt);
-%    \path[font=\footnotesize]
-%            (.913,1.8) node[right] {$i\hbox{$=$}0$}
-%            (1.369,.1) node[right] {$i\hbox{$=$}1$};
-%    \path[font=\footnotesize]
-%            (-.645,.513) node[left] {$j$}
-%            (.228,.45) node[right] {$j\hbox{$+$}1$};
-%    \draw (-.209,.482)+(-60:.25) [yscale=1.3,->] arc(-60:240:.25);
-%    \fill[black,font=\footnotesize]
-%                    (-.516,1.45) node [above] {$P_{00}$}
-%                    (-.775,-.424) node [below] {$P_{10}$}
-%                    (.183,1.4) node [above] {$P_{01}$}
-%                    (.274,-.5) node [below] {$P_{11}$};
-%    \end{scope}
-%\end{tikzpicture}
 
 \subsection{SRM Constraints}
 
 This section describes the constraints that govern the chemistry, thermodynamics
 and flow inside the \gls{srm} in a single time step.
-
 Before enumerating constraints, we start with some basic nomenclature. The subscripts $\rm{i}$
-represent a spatial discretization of the rocket. The time discretization has been omitted to
-reduce verbosity and make the constraint clearer. Subscripts $t$ denote total quantities
+represent a spatial discretization of the rocket. The discretization is zero-indexed,
+so the indices are valid from $i = [0,1,...,n-1]$. The time discretization has been omitted to
+reduce verbosity and make the constraint clearer, but naturally these constraints are
+applied to every time step. Subscripts $t$ denote total quantities
 (pressure and temperature).
 
 \subsubsection{Bounding constraints}
@@ -110,25 +71,12 @@ We assume that the rocket is divided into $n$ equal sections
     \rm{n} \times l_{\rm{sec}} = l
 \end{equation}
 
-We limit the expansion ratio within a single section with parameter $k_{A, \rm{max}}$.
+We bound the area expansion ratio $k_A$ within a single section
+with parameter $k_{A, \rm{max}}$.
 
 \begin{align}
     k_A &\leq k_{A,\rm{max}} \\
     k_A &\geq \frac{1}{k_{A,\rm{max}}}
-\end{align}
-
-\subsubsection{Exit quantities}
-
-To be able to couple a rocket nozzle to the SRM model,
-we need to define the SRM exit quantities.
-
-\begin{align}
-    u_{\rm{out}} &= u_{\rm{n}-1} \\
-    T_{t,\rm{out}} &= T_{t,\rm{n}-1} \\
-    T_{\rm{out}} &= T_{\rm{n}-1} \\
-    \dot{m}_{\rm{out}} &= \dot{m}_{\rm{n}-1} \\
-    \rho_{\rm{out}} &= \rho_{\rm{n}-1} \\
-    P_{\rm{out}} &= P_{\rm{n}-1}
 \end{align}
 
 \subsubsection{In-cell constraints}
@@ -221,16 +169,17 @@ than in cell $\rm{i}$, since the flow must be toward the nozzle.
 The different conservation laws are as follows:
 
 \begin{align}
-    \dot{m}_{\rm{i}-1} + q_{\rm{i}}
-    &\geq
-    \dot{m}_{\rm{i}} &\rm{[Mass Cons.]}\\
-    P_{\rm{i}-1} A_{\rm{in}, \rm{i}} + \rho_{\rm{i}-1} u_{\rm{i}-1}^2 A_{\rm{in},\rm{i}}
-    &\geq
+    \dot{m}_{\rm{i}}
+    \leq
+    \dot{m}_{\rm{i}-1} + q_{\rm{i}} ~~&\rm{[Mass]}\\
     P_{\rm{i}} A_{\rm{out}, \rm{i}} + q_{\rm{i}} u_{\rm{i}} V_{\rm{chamb},\rm{i}} l_{\rm{sec}} A_{\rm{out},\rm{i}}
-    + \rho_{\rm{i}-1} u_{\rm{i}-1} u_{\rm{i}} A_{\rm{out}, \rm{i}}&[\mathrm{Mom. Cons.}] \\
-    \dot{m}_{\rm{i}-1} T_{t, \rm{i}-1} + q_{\rm{i}}\Big(T_{\rm{amb}} + \frac{k_{\rm{comb}}}{c_{\rm{p}}}\Big)
-    &\geq
-    \dot{m_{\rm{i}}} T_{t, \rm{i}} &\rm{[Energy Cons.]} \\
+    + \rho_{\rm{i}-1} u_{\rm{i}-1} u_{\rm{i}} A_{\rm{out}, \rm{i}}
+    \leq
+    P_{\rm{i}-1} A_{\rm{in}, \rm{i}} + \rho_{\rm{i}-1} u_{\rm{i}-1}^2 A_{\rm{in},\rm{i}} ~~&[\mathrm{Momentum}]\\
+    \dot{m_{\rm{i}}} \Big(T_{\rm{i}} + \frac{u_{\rm{i}}}{2c_p}\Big)
+    \leq
+    \dot{m}_{\rm{i}-1} \Big(T_{\rm{i}-1} + \frac{u_{\rm{i}-1}}{2c_p}\Big) +
+    q_{\rm{i}}\Big(T_{\rm{amb}} + \frac{k_{\rm{comb}}}{c_{\rm{p}}}\Big) ~~&\rm{[Energy]}\\
 \end{align}
 
 \subsubsection{First cell constraints}
@@ -257,12 +206,83 @@ Since there is no influx to the first section, the burn rate constraint is simpl
     r_{0} &\geq r_c  \Big(\frac{P_{\rm{chamb},0}}{\hat{P}}\Big)^{0.35} (1 + \frac{1}{2} r_k (u_{0}))
 \end{align}
 
+\subsubsection{Exit quantities}
+
+To be able to couple a rocket nozzle to the SRM model,
+we need to define the SRM exit quantities.
+
+\begin{align}
+    u_{\rm{out}} &= u_{\rm{n}-1} \\
+    T_{t,\rm{out}} &= T_{t,\rm{n}-1} \\
+    T_{\rm{out}} &= T_{\rm{n}-1} \\
+    \dot{m}_{\rm{out}} &= \dot{m}_{\rm{n}-1} \\
+    \rho_{\rm{out}} &= \rho_{\rm{n}-1} \\
+    P_{\rm{out}} &= P_{\rm{n}-1}
+\end{align}
+
 \subsection{Nozzle constraints}
 
 The nozzle chokes the flow, and given some ambient pressure,
 produces thrust through a combination of mass ejection and
-pressure differential.
+pressure differential. Again, we will omit the subscript $t$ for
+the different time steps, but the constraints below are evaluated
+at every time step.
 
+We enforce mass flow conservation and the universal gas laws
+at the nozzle throat and exit.
+
+\begin{equation}
+    \dot{m} = \rho_* u_* A_* = \rho_e u_e A_e \\
+    P_e = \rho_e R T_e \\
+    P_* = \rho_* R T_*
+\end{equation}
+
+We know that the throat is choked, so the mass flow rate at the throatThere a
+is constrained as follows:
+
+\begin{align}
+    P_t &= P_* \Big(\frac{\gamma + 1}{2}\Big)^{\frac{\gamma}{\gamma-1}} \\
+    T_t &= T_* \frac{\gamma + 1}{2}
+\end{align}
+
+%            # Gas constants
+%            c_p == g/gm1*R,
+%            c_v == 1./gm1*R,
+%            # Characteristic velocity
+%            c_star == P_t*nozzle.A_star/mdot,
+%            # Thrust coefficient
+%            T == mdot*c_star*c_T,
+%            c_T >= 1,
+%            # Stagnation pressure and static pressure at throat
+%            (P_t/P_star) == (2.4/2.)**(1.4/0.4),
+%            T_t/T_star == (2.4/2.),
+%            # Choked throat relations
+%            mdot*c_p**0.5*T_t**0.5/nozzle.A_star/P_t == chokeConstant,
+%            u_star/a_star == 1.,
+%            # Stagnation temperature
+%            2.*c_p*T_e + u_e**2. <= 2.*c_p*T_t,
+%            Tight([T_star + u_star**2./(2.*c_p) <= T_t], name='TtThroat', printwarning=True),
+%            # Exit Mach number
+%            M_e == u_e/a_e,
+%            M_e >= 1.,
+%            # Speed of sound
+%            a_e**2. == g*R*T_e,
+%            a_star**2. == g*R*T_star,
+%            # Exit pressure
+%            (T_e/T_t)**(1.4/.4) == P_e/P_t,
+%            ]
+%        with SignomialsEnabled():
+%            constraints += [
+%                # Thrust
+%                T <= mdot*u_e + (P_e - P_atm)*nozzle.A_e,
+%            ]
+%        return constraints
+
+\subsection{Coupling constraints}
+
+The following constraints are used to make sure that the nozzle
+and the solid rocket motor are adequately constrained
+w.r.t. each other.
 
 
 	% --------------------------------------------------------------
