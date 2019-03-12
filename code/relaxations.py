@@ -1,4 +1,4 @@
-from gpkit.constraints.relax import ConstantsRelaxed
+from gpkit.constraints.relax import ConstantsRelaxed, ConstraintsRelaxedEqually
 from gpkit import Model, units
 from gpkit.small_scripts import mag
 
@@ -35,6 +35,22 @@ def relaxed_constants(model, include_only=None, exclude=None):
         feas = Model(model.cost, model)
 
     return feas
+
+def relaxed_constraints(model):
+    """
+    Method to precondition an SP so it solves with a relaxed constants algorithm
+
+    ARGUMENTS
+    ---------
+    model: the model to solve with relaxed constants
+
+    RETURNS
+    -------
+    feas: the input model but with relaxed constants and a new objective
+    """
+
+    constsrelaxed = ConstraintsRelaxedEqually(model)
+    return Model(constsrelaxed.relaxvar**20 * model.cost, constsrelaxed)
 
 def aug_dict(key, value, dict):
     if key in dict.keys():
@@ -123,7 +139,7 @@ def map_relaxations(groupedDict, nt, nx, decimals = 3):
             print 'Warning: tight constraint that does not' \
                   ' obey the specified relaxations detected.'
         nd = [mag(j) for j in np.array(nd)[:,0]]
-        nd = np.array(nd).reshape((dim1, dim2))
+        nd = np.array(nd).reshape((dim2, dim1))
         relaxDict[i] = np.round(nd, decimals=decimals)
     return relaxDict
 

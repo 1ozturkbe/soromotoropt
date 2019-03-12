@@ -4,6 +4,7 @@ from gpkit.constraints.tight import Tight
 
 from nozzle import Nozzle, NozzlePerformance
 from SRM import SRM
+from fuel import allocate_fuel
 
 from relaxations import relaxed_constants, post_process, compute_constr_tightness
 from relaxations import group_constr_tightness, map_relaxations
@@ -95,7 +96,8 @@ class Rocket(Model):
                 Tight([self.nozzlePerformance.P_t[i] <= s[i]*(self.section.P_out[i] +
                                 0.5*self.section.rho_out[i]*self.section.u_out[i]**2)], name='PtNozzle', printwarning=True),
                 s[i]*self.nozzlePerformance.P_t[i] >= self.section.P_out[i] +
-                                0.5*self.section.rho_out[i]*self.section.u_out[i]**2
+                                0.5*self.section.rho_out[i]*self.section.u_out[i]**2,
+                s[i] >= 1
                 ]
 
         return constraints, self.nozzle, self.nozzlePerformance, self.section
@@ -114,8 +116,8 @@ if __name__ == "__main__":
         m.P_max                                      :8*10.**7*units('Pa'),
         m.section.l_b_max                            :3*np.ones(nt),
         # m.section.k_A                                :1*np.ones((nx, nt)), #Temporarily
-        # m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
-        m.T_target                                   :np.array([150, 250, 100, 100])*units('kN'),
+        m.T_target                                   :np.linspace(1.5e5,1.5e5,nt)*units('N'),
+        # m.T_target                                   :np.array([150, 250, 100, 100])*units('kN'),
     })
 
     x0 = dict()
@@ -139,6 +141,22 @@ if __name__ == "__main__":
     groupedDict = group_constr_tightness(tightnessDict)
     relaxDict = map_relaxations(groupedDict, nt, nx)
 
-for i in ['burnRate', 'massCons', 'energyCons', 'momCons', 'Ttout']:
-    print i
-    print relaxDict[i]
+    # for i in ['burnRate', 'massCons', 'energyCons', 'momCons', 'Ttout']:
+    #     print i
+    #     print relaxDict[i]
+
+    beta_p, beta_a, beta_f, porosity = allocate_fuel(sol, m, relaxDict,nt, nx)
+    print "Propellant ratio"
+    print beta_p
+    print "Accelerant ratio"
+    print beta_a
+    print "Filler ratio"
+    print beta_f
+    print "Porosity"
+    print porosity
+    print "Lengths"
+    sol('l_b')
+    print "Areas"
+    sol('A_avg')
+
+

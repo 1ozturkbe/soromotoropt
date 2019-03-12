@@ -148,6 +148,7 @@ class SRM(Model):
                     rho[i-1]*u[i-1]*u[i]*A_out[i]], name='momCons', printwarning=True),
                 # Temperatures
                 Tight([(T[i]+u[i]**2/(2*c_p))*mdot[i] <= mdot[i-1]*(T[i-1]+u[i-1]**2/(2*c_p)) + q[i]*T_amb + q[i]*k_comb_p/c_p], name='energyCons', printwarning=True),
+                # (T[i]+u[i]**2/(2*c_p))*mdot[i] >= mdot[i-1]*(T[i-1]+u[i-1]**2/(2*c_p)) + q[i]*T_amb,
                 # Mass flows
                 Tight([mdot[i-1] + q[i] >= mdot[i]], name='massCons', printwarning=True),
                 # # Burn rate (Saint-Robert's Law, coefficients taken for Space Shuttle SRM)
