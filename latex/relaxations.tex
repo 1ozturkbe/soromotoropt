@@ -12,10 +12,10 @@ to the model and not a variable makes this almost surely impossible.
 
 There are eight types of equality constraints that are relaxed in the formulation:
 \begin{itemize}
-    \item Nozzle total pressure
-    \item Nozzle total temperature
+    \item SRM exit total temperature
+    \item Nozzle throat total temperature
     \item Fuel mass conservation
-    \item Total temperature within SRM section
+    \item Nozzle throat total pressure
     \item Burn rate within SRM section
     \item Mass conservation within SRM section
     \item Momentum conservation within SRM section
@@ -23,38 +23,83 @@ There are eight types of equality constraints that are relaxed in the formulatio
 \end{itemize}
 
 Empirically, it was found that the first three constraints are always tight, which
-somewhat simplifies the analysis. Furthermore, we can ignore the relaxations of
-total temperature, since the effect of this is properly captured in the energy conservation constraint.
+somewhat simplifies the analysis. Furthermore, the fourth set of relaxed constraints
+on nozzle total pressure are always tight through the use of slacks to drive them
+towards equality.
 So the ones that we will be considering in the following sections are burn rate, and
 mass, momentum and energy conservation laws.
 
 \subsection{Types of materials within rocket motor}
 
-We will assume that the propellant is made up of three different materials
+We will assume that the propellant is made up of three different materials.
 
 \begin{itemize}
     \item \textbf{Propellant}: This is the chemical that
     provides the chemical potential energy and mass to the reaction.
-    \item \textbf{Accelerant}: This chemical contributes mass but does not contribute
-    to the heat of combustion of the reaction, but increases the rate at which
-    propellant burns.
+    \item \textbf{Accelerant}: This chemical contributes mass and heat of combustion of the reaction,
+    but also increases the rate at which  propellant burns.
     \item \textbf{Filler}: This chemical contributes mass but does not contribute
     to the heat of combustion of the reaction. It slows down the rate of reaction by
     its presence.
 \end{itemize}
 
-\subsection{Mass flow relaxation}
+We describe the distribution of materials by their relative mass proportion, so that:
+
+\begin{equation}
+    \beta_p + \beta_a + \beta_f = 1
+\end{equation}
+
+Note that these mass ratios are discretized in time and space, but in the following
+sections will be described as scalar values for simplicity.
+
+\subsection{Determining mass proportions of fuel}
 
 The loss of mass through the burn can be thought of as the presence of voids in the
 propellant. We define $p_f$ as the porosity of the section, which describes this.
 It is found that mass conservation laws are often tight to a thousandth of the constraint,
 so porosity values of the propellant area expected to be low.
 
+\begin{equation}
+    p_f = r_{\rm{mass}}
+\end{equation}
+
 \subsection{Burn rate relaxation}
 
+Having computed the mass loss, we can calculate the propellant burn rate
+by looking at the energy conservation law. This expression is given below:
+
 \begin{equation}
-    1 + r_b = \Big(1+\frac{\beta_a}{\beta_p}\Big) (1-\beta_f + p_f),~\beta_p + \beta_a + \beta_b = 1
+    q_{p_{x,t}} = (T_{t_{x,t}} \dot{m}_{x,t} - q_{x,t} T_{\rm{amb},t}- T_{t_{x,t-1}}\dot{m}_{x,t})\frac{c_p}{k_{\rm{comb,p}}}
 \end{equation}
+
+And then the mass proportion of propellant and accelerant is given as follows:
+
+\begin{equation}
+    \beta_{p+a} = \frac{q_{p_{x,t}}}{q_{x,t}(1-p_{f_{x,t}})}
+\end{equation}
+
+Then it is trivial to find the filler mass ratio:
+
+\begin{equation}
+    \beta_f = 1-\beta_{p+a}-p_f
+\end{equation}
+
+Next, we use the burn rate relaxation to obtain the accelerant and propellant
+mass ratios using the burn rate relaxation $r_b$.
+
+\begin{align}
+    \beta_p &= \frac{1}{1+r_b} \beta_{p+a} \\
+    \beta_a &= 1-\beta_p-\beta_f
+\end{align}
+
+I am still figuring out a method to integrate the momentum conservation
+into this framework. It will likely have to do with the molarity of the different
+components, since that has an effect on the gas constant and can
+therefore modify the pressure within the cells as required.
+
+%\begin{equation}
+%    1 + r_b = \Big(1+\frac{\beta_a}{\beta_p}\Big) (1-\beta_f + p_f),~
+%\end{equation}
 
 
 
