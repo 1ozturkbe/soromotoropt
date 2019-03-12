@@ -143,11 +143,9 @@ burn rate $A_{\rm{b}}$, and burn rate $r$.
     q_{\rm{i}} &= \rho_{\rm{p}} A_{\rm{b, i}} r_{\rm{i}} \\
 \end{align}
 
-And of course, for the basic fluid dynamic analysis, we define the total temperature
-and don't allow for the internal flow to go supersonic.
+And of course, we don't allow for the internal flow to go supersonic.
 
 \begin{align}
-    T_{\rm{t,i}} &\leq T_{\rm{i}} + \frac{u_{\rm{i}}^2}{2c_{p}} \\
     u_{\rm{i}}^2 &\leq \rho_{\rm{i}} R T_{\rm{i}}
 \end{align}
 
@@ -193,9 +191,9 @@ to accelerate the mass flow in the first section. The mass flow out of
 the first section is simply the mass generated in that section.
 
 \begin{align}
-    \dot{m}_0 &= q_0 &\mathrm{[Mass Cons.]} \\
-    P_{end}*A_{\rm{in}, 0} &\geq P_0 A_{\rm{out}, 0} + q_0 u_0 V_{\rm{chamb},0} l_{\rm{sec}} A_{\rm{out},0} &\mathrm{[Mom. Cons.]} \\
-    T_{t, 0} \dot{m}_0 &\leq q_0 (T_{\rm{amb}} + k_{comb,p} c_{p}) &\mathrm{[Energy Cons.]}
+    \dot{m}_0 &= q_0 &\mathrm{[Mass]} \\
+    P_{end} A_{\rm{in}, 0} &\geq P_0 A_{\rm{out}, 0} + q_0 u_0 V_{\rm{chamb},0} l_{\rm{sec}} A_{\rm{out},0} &\mathrm{[Momentum]} \\
+    \Big(T_{0} + \frac{u_0^2}{2c_p}\Big) \dot{m}_0 &\leq q_0 (T_{\rm{amb}} + k_{comb,p} c_{p}) &\mathrm{[Energy]}
 \end{align}
 
 We also define $P_{\rm{end}}$, which is the pressure at the tip of the rocket where there is stagnation.
@@ -231,52 +229,55 @@ at every time step.
 We enforce mass flow conservation and the universal gas laws
 at the nozzle throat and exit.
 
-\begin{equation}
+\begin{align}
     \dot{m} = \rho_* u_* A_* = \rho_e u_e A_e \\
     P_e = \rho_e R T_e \\
     P_* = \rho_* R T_*
-\end{equation}
+\end{align}
 
-We know that the throat is choked, so the mass flow rate at the throatThere a
-is constrained as follows:
+We know that the throat is choked, so that the static pressure
+is known given the total pressure in the \gls{srm}. The non-dimensional
+mass flow rate at the throat is constrained to be a constant,
+which depends on $\gamma$, and the Mach number in the throat is 1.
 
 \begin{align}
     P_t &= P_* \Big(\frac{\gamma + 1}{2}\Big)^{\frac{\gamma}{\gamma-1}} \\
-    T_t &= T_* \frac{\gamma + 1}{2}
+    T_t &= T_* \frac{\gamma + 1}{2} \\
+    \dot{m} \frac{\sqrt{c_p T_t}}{A_* P_t} &= C \\
+    a_*^2. &= gRT_* \\
+    \frac{u_*}{a_*} = 1
 \end{align}
 
-%            # Gas constants
-%            c_p == g/gm1*R,
-%            c_v == 1./gm1*R,
-%            # Characteristic velocity
-%            c_star == P_t*nozzle.A_star/mdot,
-%            # Thrust coefficient
-%            T == mdot*c_star*c_T,
-%            c_T >= 1,
-%            # Stagnation pressure and static pressure at throat
-%            (P_t/P_star) == (2.4/2.)**(1.4/0.4),
-%            T_t/T_star == (2.4/2.),
-%            # Choked throat relations
-%            mdot*c_p**0.5*T_t**0.5/nozzle.A_star/P_t == chokeConstant,
-%            u_star/a_star == 1.,
-%            # Stagnation temperature
-%            2.*c_p*T_e + u_e**2. <= 2.*c_p*T_t,
-%            Tight([T_star + u_star**2./(2.*c_p) <= T_t], name='TtThroat', printwarning=True),
-%            # Exit Mach number
-%            M_e == u_e/a_e,
-%            M_e >= 1.,
-%            # Speed of sound
-%            a_e**2. == g*R*T_e,
-%            a_star**2. == g*R*T_star,
-%            # Exit pressure
-%            (T_e/T_t)**(1.4/.4) == P_e/P_t,
-%            ]
-%        with SignomialsEnabled():
-%            constraints += [
-%                # Thrust
-%                T <= mdot*u_e + (P_e - P_atm)*nozzle.A_e,
-%            ]
-%        return constraints
+We define the characteristic velocity and the thrust coefficient for the
+convenience of the user:
+
+\begin{align}
+    c_* &= \dot{m} P_t A_* \\
+    T &= \dot{m} c_* c_T \\
+    c_T &\geq 1
+\end{align}
+
+Stagnation relations
+
+\begin{align}
+    2 c_p T_e + u_e^2 &\leq 2 c_p T_t \\
+    2 c_p T_* + u_*^2 &\leq 2 c_p T_t \\
+\end{align}
+
+Exit pressure
+
+\begin{align}
+    a_e^2. &= gRT_e \\
+    M_e &= \frac{u_e}{a_e} \\
+    M_e &\geq 1 \\
+    \Big(\frac{T_e}{T_t}\Big)^{\frac{\gamma}{\gamma-1}} &= \frac{P_e}{P_t}
+\end{align}
+
+Thrust
+
+\begin{equation}
+    T \leq \dot{m} u_e + (P_e - P_{atm}) A_e
+\end{equation}
 
 \subsection{Coupling constraints}
 
