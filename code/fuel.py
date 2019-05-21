@@ -31,14 +31,14 @@ def allocate_fuel(sol, m, relaxDict, nt, nx):
     for i in range(nt):
         for j in range(nx):
             if j >= 1:
-                q_comb[j].append(np.round(mag(((T_t[j][i])*mdot[j,i] - q[j,i]*T_amb[i] - T_t[j][i]*mdot[j,i-1])*c_p[i]/k_comb_p[i]),decimals=2))
+                q_comb[j].append(np.round(mag(((T_t[j][i])*mdot[j,i] - q[j,i]*T_amb[i] - T_t[j][i-1]*mdot[j,i-1])*c_p[i]/k_comb_p[i]),decimals=2))
             else:
                q_comb[j].append(np.round(mag((T_t[j][i]*mdot[j,i] - q[j,i]*T_amb[i])*c_p[i]/k_comb_p[i]),decimals=2))
 
     # Since this isn't working properly, we hack and offset q_comb
     q_min = np.min(q_comb)
     qratmin = np.min(mag(q_comb/q))
-    q_comb = q_comb-(-0.1+qratmin)*mag(q)
+    q_comb = q_comb-(qratmin)*mag(q)
     qrat = mag(q_comb/q) # Sum of propellant+accelerant ratios
     beta_f = np.ones((nx,nt))-qrat-porosity # Filler ratio
 

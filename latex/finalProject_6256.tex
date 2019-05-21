@@ -1,0 +1,92 @@
+%%
+%% Author: Berk
+%% 3/21/2019
+%%
+
+% Preamble
+\documentclass[11pt]{article}
+
+% Packages
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{comment}
+\usepackage[acronyms]{glossaries}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{tikz-3dplot}
+\usetikzlibrary{shapes.geometric}
+
+\newacronym{sdp}{SDP}{semidefinite program}
+\newacronym{ceg}{CEG}{Convex Engineering Group}
+\newacronym{gp}{GP}{Geometric Program}
+\newacronym{mc}{MC}{Monte Carlo}
+\newacronym{sp}{SP}{Signomial Program}
+\newacronym{rgp}{RGP}{Robust Geometric Program}
+\newacronym{rsp}{RSP}{Robust Signomial Program}
+\newacronym{ro}{RO}{Robust Optimization}
+\newacronym{so}{SO}{Stochastic Optimization}
+\newacronym{mdo}{MDO}{Multidisciplinary Design Optimization}
+\newacronym{dc}{DC}{difference-of-convex}
+\newacronym{nlp}{NLP}{Nonlinear Program}
+\newacronym{rhs}{RHS}{right hand side}
+\newacronym{lhs}{LHS}{left hand side}
+\newacronym{cv}{CV}{coefficient of variation}
+\newacronym{srm}{SRM}{solid rocket motor}
+\newacronym{sos}{SOS}{sum of squares}
+
+\makeglossaries
+
+% Document
+\begin{document}
+
+    \title{SDP relaxations for solid rocket motor shape optimization}
+    \author{Berk Ozturk}
+    \maketitle
+
+    \include{introduction}
+
+    \include{background}
+
+    \include{approach6256}
+
+    \include{geometry}
+
+    \section{Constraints}
+
+    This section elaborates on the constraints of the problem, and the approach taken to formulate a \gls{sdp}.
+    The constraints are imposed at $n_x+1$ cross-sections to determine the polynomials describing
+    the internal geometry at different cross-sectional slices of the rocket.
+    The surface geometry in between the sections will be described through interpolation.
+
+    \begin{itemize}
+        \item \textbf{The integral difference between the cross-sectional areas of the shape must be equal
+        \item to the fuel burnt in a given time step, as determined by the first-stage problem.} In other words:
+        \begin{equation}
+            \int\limits_{-\pi}^{\pi} p(\theta, t_i) + \Delta A_{p, t_i} = \int\limits_{-\pi}^{\pi} p(\theta, t_{i-1})
+        \end{equation}
+        We can determine this easily through Gaussian quadrature,
+        which makes this a linear constraint on the coefficients of the polynomial $p(\theta, t_i)$.
+        \item \textbf{The arc length of the polynomial must be equal to the arc length $l_b$ as determined
+        by the first-stage problem.} This seems like a pretty complex constraint to figure out how to do,
+        since the arc length of an arbitrary polynomial curve has no closed-form solution. In $\theta$, it can be represented as:
+        \begin{equation}
+            s(t_i) = \int\limits_{-\pi}^{\pi} \sqrt{r^2 + \Big(\frac{dr}{d\theta}\Big)^2} d\theta, ~r = p(\theta, t_i)
+        \end{equation}
+        Perhaps this can be approximated using a triangle approximation:
+        \begin{equation}
+            s(t_i) \approx \sum\limits_i r_{i}r_{i-1}\rm{sin}(\delta\theta)
+        \end{equation}
+        Clearly this approximation is best when the difference $r_{i} - r_{i-1}$ is small.
+        The relaxation of this constraint is a quadratic constraint on the coefficients of $p$, for a known $\delta\theta$.
+
+        \item \textbf{The shapes must never intersect.} Since the flame front must strictly regress as a result of burning, the polynomials describing the shapes must have no common roots. This is a sum-of-squares constraint on the difference of the univariate polynomials $p(\theta, t_i)$, or a constraint for bivariate polynomial $p(\theta, t)$ to be monotonically increasing in $t$.
+        \item\textbf{The shapes must not intersect the unit circle.} Since fuel can only be contained inside the casing of the rocket, we set an upper bound on the polynomials. This can be achieved by making sure the polynomials don't have common roots with the constant polynomial representing unit circle. This will also require that the negative of the polynomials be a sum-of-squares.
+        \item \textbf{Regularity conditions on the shape of the polynomials.} Not sure what form these will take, but the shapes of the polynomials must `follow' each other. Furthermore, it would be nice if the polynomial was continuous in its second-derivative since it has a periodic boundary condition on the circle. These would all be constraints on $\frac{dp}{d\theta}$ and $\frac{d^2p}{d\theta^2}$, which are polynomials of degree $d-1$ and $d-2$ since we are discussing univariate or bivariate polynomials.
+    \end{itemize}
+
+    \section{Conclusion}
+
+    I think that shape optimization presents exciting frontiers for the use of \gls{sdp}s in engineering. 6.256 has been quite theoretical so far, so I am excited to take these real-world constraints and try to formulate a tractable approximation of the second-stage \gls{srm} optimization problem. I will be bothering you a lot in the weeks following Spring Break to try and get your insight and figure out if I am on the right track. Thanks!
+
+\end{document}

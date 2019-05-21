@@ -1,0 +1,16 @@
+\section{Geometry in polar coordinates}
+
+Frankly, I underestimated the difficult algebra required to approximate
+arc lengths and areas in polar coordinates. So I will detail it here
+before I describe the constraints in my problem. Assuming that we
+know the radius of our shape $r(\theta)$ for $\theta=[-\pi, pi]$,
+the circumference and area of the shape is described as follows.
+
+\begin{align}
+    L & = \int\limits_{\pi}^{\pi} \sqrt{r^2 + \Big(\frac{dr}{d\theta}\Big)^2} d\theta \\
+    A & = \int\limits_{\pi}^{\pi} r^2 d\theta
+\end{align}
+
+This poses some problems, since the integral of the square root of a polynomial
+is not a polynomial that is amenable to \gls{sos} representation, since the
+constraints need to be linear over the coefficients of the polynomial.

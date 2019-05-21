@@ -159,4 +159,13 @@ if __name__ == "__main__":
     print "Areas"
     sol('A_avg')
 
-
+    resultDict = {'A': sol('A_avg'),
+                  'l_b': sol('l_b'),
+                  'beta_p': beta_p,
+                  'beta_a': beta_a,
+                  'beta_f': beta_f,
+                  'porosity': porosity
+                  }
+    sol.save("sols/solution")
+    for i,v in resultDict.iteritems():
+        np.savetxt("sols/"+ i + ".csv", v, delimiter=",")
