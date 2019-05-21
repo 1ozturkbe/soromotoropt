@@ -169,13 +169,17 @@ s(t_i) \approx \sum\limits_i r_{i}r_{i-1}\rm{sin}(\delta\theta)
 \end{equation}
 Clearly this approximation is best when the difference $r_{i} - r_{i-1}$ is small. The relaxation of this constraint is a quadratic constraint on the coefficients of $p$, for a know $\delta\theta$. 
 
-\item \textbf{The shapes must never intersect.} Since the flame front must strictly regress as a result of burning, the polynomials describing the shapes must have no common roots. This is a sum-of-squares constraint on the difference of the univariate polynomials $p(\theta, t_i)$, or a constraint for bivariate polynomial $p(\theta, t)$ to be monotonically increasing in $t$. 
+\item \textbf{The shapes must never intersect.} Since the flame front must strictly regress as a result of burning, the polynomials describing the shapes must have no common roots. This is a sum-of-squares constraint on the difference of the univariate polynomials $p(\theta, t_i)$, or a constraint for bivariate polynomial $p(\theta, t)$ to be monotonically increasing in $t$.
 \item\textbf{The shapes must not intersect the unit circle.} Since fuel can only be contained inside the casing of the rocket, we set an upper bound on the polynomials. This can be achieved by making sure the polynomials don't have common roots with the constant polynomial representing unit circle. This will also require that the negative of the polynomials be a sum-of-squares. 
 \item \textbf{Regularity conditions on the shape of the polynomials.} Not sure what form these will take, but the shapes of the polynomials must `follow' each other. Furthermore, it would be nice if the polynomial was continuous in its second-derivative since it has a periodic boundary condition on the circle. These would all be constraints on $\frac{dp}{d\theta}$ and $\frac{d^2p}{d\theta^2}$, which are polynomials of degree $d-1$ and $d-2$ since we are discussing univariate or bivariate polynomials. 
 \end{itemize}
 
 \section{Conclusion}
 
-I think that shape optimization presents exciting frontiers for the use of \gls{sdp}s in engineering. 6.256 has been quite theoretical so far, so I am excited to take these real-world constraints and try to formulate a tractable approximation of the second-stage \gls{srm} optimization problem. I will be bothering you a lot in the weeks following Spring Break to try and get your insight and figure out if I am on the right track. Thanks! 
+I think that shape optimization presents exciting frontiers for the use of \gls{sdp}s in engineering.
+    6.256 has been quite theoretical so far, so I am excited to take these real-world constraints and
+    try to formulate a tractable approximation of the second-stage \gls{srm} optimization problem.
+    I will be bothering you a lot in the weeks following Spring Break to try and get your insight and figure
+    out if I am on the right track. Thanks!
 
 \end{document}
