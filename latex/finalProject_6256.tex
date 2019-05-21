@@ -14,6 +14,7 @@
 \usepackage[acronyms]{glossaries}
 \usepackage{graphicx}
 \usepackage{tikz}
+\usepackage{subcaption}
 \usepackage{tikz-3dplot}
 \usetikzlibrary{shapes.geometric}
 
@@ -44,18 +45,19 @@
     \author{Berk Ozturk}
     \maketitle
 
-    \include{introduction}
+    \input{introduction}
 
-    \include{background}
+    \input{background}
 
-    \include{approach6256}
+    \input{approach6256}
 
-    \include{geometry}
+    \input{geometry}
 
-    include{constraints6256}
+    \input{firstStageOutputs}
 
-    \section{Conclusion}
+    \input{constraints6256}
+    
+    \input{results6256}
 
-    I think that shape optimization presents exciting frontiers for the use of \gls{sdp}s in engineering. 6.256 has been quite theoretical so far, so I am excited to take these real-world constraints and try to formulate a tractable approximation of the second-stage \gls{srm} optimization problem. I will be bothering you a lot in the weeks following Spring Break to try and get your insight and figure out if I am on the right track. Thanks!
-
+    \input{conclusion6256}
 \end{document}

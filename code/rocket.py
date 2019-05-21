@@ -1,6 +1,7 @@
 from gpkit import Model, parse_variables, units
 from gpkit import SignomialsEnabled, Vectorize
 from gpkit.constraints.tight import Tight
+from gpkit.small_scripts import mag
 
 from nozzle import Nozzle, NozzlePerformance
 from SRM import SRM
@@ -10,6 +11,7 @@ from relaxations import relaxed_constants, post_process, compute_constr_tightnes
 from relaxations import group_constr_tightness, map_relaxations
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 Tight.reltol = 2e-2
 
@@ -169,3 +171,19 @@ if __name__ == "__main__":
     sol.save("sols/solution")
     for i,v in resultDict.iteritems():
         np.savetxt("sols/"+ i + ".csv", v, delimiter=",")
+
+    # Plotting result
+    time  = np.linspace(0,mag(sol(m.t_T)),nt+1)
+    C = 2.*np.pi*mag(sol(m.r))
+    A = np.pi*mag(sol(m.r))**2
+    for i in range(nx):
+        plt.figure(1)
+        plt.plot(time,np.concatenate((mag(sol(m.section.l_b)[i]),np.array([C]))))
+        plt.figure(2)
+        plt.plot(time,np.concatenate((mag(sol(m.section.A_out)[i]),np.array([A]))))
+    plt.figure(1)
+    plt.xlabel('Burn time (s)')
+    plt.ylabel('Circumference (m)')
+    plt.figure(2)
+    plt.xlabel('Burn time (s)')
+    plt.ylabel('Area (m^2)')

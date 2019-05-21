@@ -3,7 +3,7 @@
 Frankly, I underestimated the difficult algebra required to approximate
 arc lengths and areas in polar coordinates. So I will detail it here
 before I describe the constraints in my problem. Assuming that we
-know the radius of our shape $r(\theta)$ for $\theta=[-\pi, pi]$,
+know the radius of our shape $r(\theta)$ for $\theta=[-\pi, \pi]$,
 the circumference and area of the shape is described as follows.
 
 \begin{align}
@@ -14,3 +14,8 @@ the circumference and area of the shape is described as follows.
 This poses some problems, since the integral of the square root of a polynomial
 is not a polynomial that is amenable to \gls{sos} representation, since the
 constraints need to be linear over the coefficients of the polynomial.
+I tried a number of different approximations for both the area and the circumference, but settled
+on describing $r^2_{i,t}(\theta)$ as a \gls{sos} polynomial so I could
+optimize the polynomials over the cross-sectional areas exactly. I resolved to
+get the arc lengths by perturbing the output polynomials of my \gls{sos} problem
+in a different optimization step.
