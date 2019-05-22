@@ -36,8 +36,9 @@
         $R^2 - r^2_{i,n_t}(\theta) \rm{~is~SOS~over~} \theta \in [-\pi, \pi]$, where
         $R$ is the outer radius of the \gls{srm}.
         \item \textbf{Regularity conditions on the shape of the polynomials.}
-        The first regularity condition is that the polynomials are periodic over $[-\pi, \pi]$.
-        I tried imposing conditions on the first and second derivative of the polynomial over the boundary,
+        The first regularity condition is that the polynomials `close' over $[-\pi, \pi]$, i.e.
+        that $r^2_{i,t}(-\pi) = r^2_{i,t}(\pi)$.
+        I tried imposing conditions on the first and second derivative of the polynomial over the boundary as well,
         but this ended up making the problem less well-posed (solver SeDuMi kept running
         into numerical problems, the polynomials were not remotely close to satisfying constraints).
     \end{itemize}

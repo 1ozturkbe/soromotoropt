@@ -1,15 +1,10 @@
 \section{Results}
 
-For some very odd reason, even the most basic area-fitting formulation
-seemed ill posed, and SeDuMi was not able to solve the \gls{sos} problems.
+Even the most basic area-fitting formulation posed problems for SeDuMi,
+which was not able to solve the \gls{sos} problems to a satisfactory optimum
 A sample solution is shown in Figure~\ref{fig:sampleSol}, for \gls{sos}
 polynomials of order 12.
 
-\begin{figure}
-    \includegraphics[width=0.6\linewidth]{figures/sampleSol.png}
-
-    \label{fig:sampleSol}
-\end{figure}
 \begin{figure}
     \begin{subfigure}{0.48\textwidth}
         \includegraphics[width = 0.9\linewidth]{figures/sampleSol.png}
@@ -26,11 +21,12 @@ polynomials of order 12.
     \label{fig:sampleSolandA}
 \end{figure}
 
-I tried a number of methods to stop a singularity from occurring at the boundary of the domain.
-These included:
+I believe this has a lot to do with the singularity at the boundary of the domain. This is occurring since the shape is
+upper bounded by the outer radius of the rocket, but lower bounded by zero in the domain. I tried a
+number of methods to stop a singularity from occurring at the boundary. These included:
 \begin{itemize}
     \item Changing the polynomial degrees (odd and even, since my polynomials are
-    \gls{sos} only over the interval)
+    \gls{sos} only over the interval).
     \item Adding additional regularity conditions (1st and 2nd derivative) at the boundary.
     \item Adding small perturbations at the boundary through inequality constraints.
     \item Making the negative Euclidian distance of the boundary value the objective.
@@ -38,7 +34,7 @@ These included:
 
 None of these attempts worked, although I did notice that the error of the result went down with
 increasing degree, so the solver was making some sort of progress.
-This is especially odd since it is possible to write constant
+This is especially odd since it is possible to determine by hand constant
 functions $r^2(\theta \in [-\pi, \pi])$ (circles) which satisfy the area constraints,
 and yet the \gls{sos} program could not find these.
 
